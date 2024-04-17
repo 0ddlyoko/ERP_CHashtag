@@ -1,10 +1,11 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Runtime.Loader;
 
-namespace lib;
+namespace lib.plugin;
 
 public class PluginLoadContext: AssemblyLoadContext
 {
+    
     private AssemblyDependencyResolver _resolver;
 
     public PluginLoadContext(string pluginPath)

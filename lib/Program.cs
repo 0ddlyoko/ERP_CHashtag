@@ -1,88 +1,47 @@
-﻿using System.Collections;
-using System.Reflection;
+﻿using System.Reflection;
+using CommandLine;
+using lib.plugin;
+using TypeInfo = CommandLine.TypeInfo;
+
 
 namespace lib;
 
-class Program
+internal static class Program
 {
-    static void Main(string[] args)
+    private static void Main(string[] args)
     {
         try
         {
-            if (args.Length == 1 && args[0] == "/d")
-            {
-                Console.WriteLine("Waiting for any key...");
-                Console.ReadLine();
-            }
+            var parser = Parser.Default.ParseArguments<Config>(args);
 
-            string[] pluginPaths = [
-                "HelloPlugin.dll",
-                // TODO
-            ];
-            List<Plugin> plugins = pluginPaths.Select(LoadPlugin).ToList();
-            IEnumerable<ICommand> commands = plugins.SelectMany(plugin => plugin.Commands).ToList();
+            if (parser.Tag == ParserResultType.NotParsed)
+            {
+                return;
+            }
             
-            // Load commands from plugins.
-            if (args.Length == 0)
-            {
-                Console.WriteLine("Plugins: ");
-                foreach (Plugin plugin in plugins)
-                {
-                    Console.WriteLine($"> {plugin.Name}");
-                }
-                
-                Console.WriteLine("Commands: ");
-                foreach (ICommand command in commands)
-                {
-                    Console.WriteLine($"> {command.Name}\t - {command.Description}");
-                }
-            }
-            else
-            {
-                foreach (string commandName in args)
-                {
-                    Console.WriteLine($"-- {commandName} --");
+            var pluginManager = new PluginManager(parser.Value.PluginsPath);
+            Console.WriteLine("Registering plugins ...");
+            pluginManager.RegisterPlugins();
+            Console.WriteLine($"{pluginManager.PluginSize} plugins registered!");
 
-                    // Execute the command with the name passed as an argument.
-
-                    Console.WriteLine();
-                }
+            Console.WriteLine("Plugins:");
+            foreach (var plugin in pluginManager.Plugins)
+            {
+                Console.WriteLine($"- {plugin.Id}: {plugin.IsInstalled}");
             }
+
+            Console.WriteLine("Commands:");
+            foreach (var command in pluginManager.Commands)
+            {
+                Console.WriteLine($"- {command.Name}: {command.Description}");
+            }
+            
+            Console.WriteLine($"Installing {string.Join(", ", parser.Value.Install)}");
+            Console.WriteLine($"Updating {string.Join(", ", parser.Value.Update)}");
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex);
-        }
-    }
-
-    static Plugin LoadPlugin(string pluginName)
-    {
-        // TODO Fix this
-        string root = Path.GetFullPath(Path.Combine(
-            Path.GetDirectoryName(
-                Path.GetDirectoryName(
-                    Path.GetDirectoryName(
-                        Path.GetDirectoryName(
-                            Path.GetDirectoryName(typeof(Program).Assembly.Location)))))));
-        root = Path.Combine(root, "lib/plugins");
-        string pluginLocation = Path.GetFullPath(Path.Combine(root, pluginName.Replace('\\', Path.DirectorySeparatorChar)));
-        
-        PluginLoadContext loadContext = new PluginLoadContext(pluginLocation);
-        Assembly assembly = loadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginLocation)));
-        return new Plugin(assembly);
-    }
-
-    static IEnumerable<TType> CreateOfType<TType>(Assembly assembly)
-    {
-        foreach (var type in assembly.GetTypes())
-        {
-            if (typeof(TType).IsAssignableFrom(type))
-            {
-                var command = (TType?) Activator.CreateInstance(type);
-                if (command == null)
-                    continue;
-                yield return command;
-            }
         }
     }
 }

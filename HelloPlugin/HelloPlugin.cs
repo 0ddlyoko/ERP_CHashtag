@@ -1,14 +1,11 @@
-﻿using lib;
+﻿using lib.plugin;
 
 namespace HelloPlugin;
 
-public class HelloPlugin: ICommand
+public class HelloPlugin: IPlugin
 {
-    public string Name { get => "hello"; }
-    public string Description { get => "Hello Command"; }
-    public int Execute()
-    {
-        Console.WriteLine("Hello world!!");
-        return 0;
-    }
+    public string Id => "hello";
+    public string Name => "Hello";
+    public string Version => "1.0.0";
+    // public string[] Dependencies => ["test"];
 }
