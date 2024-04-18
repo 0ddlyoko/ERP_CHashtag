@@ -10,6 +10,8 @@ public class PluginManager(string pluginPath)
     public int PluginSize => _plugins.Count;
     public IEnumerable<APlugin> Plugins => _plugins.Values;
     public IEnumerable<APlugin> InstalledPlugins => _plugins.Values.Where(p => p.IsInstalled);
+    public int InstalledPluginSize => InstalledPlugins.Count();
+    
     public IEnumerable<ICommand> Commands => _commands.Values;
 
     public void RegisterPlugins()
@@ -55,6 +57,63 @@ public class PluginManager(string pluginPath)
     }
 
     public bool IsPluginInstalled(string pluginName) => GetPlugin(pluginName)?.IsInstalled ?? false;
+
+    /**
+     * Install given plugin and all his dependencies
+     */
+    public void InstallPlugin(APlugin plugin)
+    {
+        if (GetPlugin(plugin.Name) != plugin)
+            throw new InvalidOperationException("This plugin is not registered, or is not the same as given one");
+        if (plugin.State is APlugin.PluginState.ToUninstall)
+            plugin.State = APlugin.PluginState.Installed;
+        if (plugin.State == APlugin.PluginState.Installed)
+            return;
+        try
+        {
+            SetPluginToInstall(plugin);
+        }
+        catch (Exception)
+        {
+            // Exception while setting plugins and dependencies as installing.
+            // This means a dependency was not found. Roll back all "To Install" plugins
+            foreach (var pl in Plugins.Where(pl => pl.State == APlugin.PluginState.ToInstall))
+            {
+                pl.State = APlugin.PluginState.NotInstalled;
+            }
+            throw;
+        }
+        InstallNeededPlugins();
+    }
+
+    public void InstallNeededPlugins()
+    {
+        var pluginsToInstall = Plugins.Where(pl => pl.State == APlugin.PluginState.ToInstall).ToList();
+        Console.WriteLine($"Installing {pluginsToInstall.Count} plugins");
+    }
+
+    /**
+     * Mark given plugin to install, and all his dependencies
+     */
+    public void SetPluginToInstall(APlugin plugin)
+    {
+        plugin.State = APlugin.PluginState.ToInstall;
+        foreach (string dependency in plugin.Dependencies)
+        {
+            APlugin? dependencyPlugin = GetPlugin(dependency);
+            if (dependencyPlugin == null)
+                throw new InvalidOperationException($"Plugin {dependencyPlugin} not found!");
+            if (dependencyPlugin.State is APlugin.PluginState.Installed or APlugin.PluginState.ToInstall)
+                continue;
+            SetPluginToInstall(dependencyPlugin);
+        }
+    }
+
+    public void UninstallPlugin(APlugin plugin)
+    {
+        if (GetPlugin(plugin.Name) != plugin)
+            throw new InvalidOperationException("This plugin is not registered, or is not the same as given one!");
+    }
 
     private void LoadCommands()
     {

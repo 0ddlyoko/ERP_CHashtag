@@ -10,7 +10,8 @@ public class APlugin(Assembly assembly)
     public string Version => Plugin.Version;
     public string[] Dependencies => Plugin.Dependencies;
     public readonly IEnumerable<ICommand> Commands = GetOfType<ICommand>(assembly);
-    public bool IsInstalled { get; protected set; } = false;
+    public bool IsInstalled => State == PluginState.Installed;
+    public PluginState State { get; internal set; } = PluginState.NotInstalled;
 
     private static IEnumerable<T> GetOfType<T>(Assembly assembly) {
         foreach (var type in assembly.GetTypes()) 
@@ -22,5 +23,13 @@ public class APlugin(Assembly assembly)
                 continue;
             yield return command;
         }
+    }
+
+    public enum PluginState
+    {
+        NotInstalled,
+        ToInstall,
+        Installed,
+        ToUninstall,
     }
 }
