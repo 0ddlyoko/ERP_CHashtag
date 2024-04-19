@@ -3,15 +3,10 @@ using System.Runtime.Loader;
 
 namespace lib.plugin;
 
-public class PluginLoadContext: AssemblyLoadContext
+public class PluginLoadContext(string pluginPath) : AssemblyLoadContext
 {
     
-    private AssemblyDependencyResolver _resolver;
-
-    public PluginLoadContext(string pluginPath)
-    {
-        _resolver = new AssemblyDependencyResolver(pluginPath);
-    }
+    private readonly AssemblyDependencyResolver _resolver = new(pluginPath);
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
@@ -20,7 +15,7 @@ public class PluginLoadContext: AssemblyLoadContext
             return null;
         return LoadFromAssemblyPath(assemblyPath);
     }
-
+    
     protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
     {
         var libraryPath = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);

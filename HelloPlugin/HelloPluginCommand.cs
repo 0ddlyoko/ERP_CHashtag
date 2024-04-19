@@ -1,6 +1,7 @@
-﻿using lib.plugin;
+﻿using lib.command;
+using lib.plugin;
 
-namespace HelloPlugin.commands;
+namespace HelloPlugin;
 
 public class HelloPluginCommand: ICommand
 {

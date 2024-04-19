@@ -1,22 +1,31 @@
 ﻿using System.Reflection;
+using lib.command;
+using lib.model;
 
 namespace lib.plugin;
 
 public class PluginManager(string pluginPath)
 {
+    private readonly Dictionary<string, APlugin> _availablePlugins = new();
     private readonly Dictionary<string, APlugin> _plugins = new();
     private readonly Dictionary<string, ICommand> _commands = new();
+    private readonly Dictionary<string, AModel> _models = new();
 
-    public int PluginSize => _plugins.Count;
+    public IEnumerable<APlugin> AvailablePlugins => _availablePlugins.Values;
+    public int AvailablePluginsSize => _availablePlugins.Count;
+    
     public IEnumerable<APlugin> Plugins => _plugins.Values;
-    public IEnumerable<APlugin> InstalledPlugins => _plugins.Values.Where(p => p.IsInstalled);
-    public int InstalledPluginSize => InstalledPlugins.Count();
+    public int PluginsSize => _plugins.Count;
     
     public IEnumerable<ICommand> Commands => _commands.Values;
+    public int CommandsSize => _commands.Count;
+    
+    public IEnumerable<AModel> Models => _models.Values;
+    public int ModelsSize => _models.Count;
 
     public void RegisterPlugins()
     {
-        if (_plugins.Count != 0)
+        if (_availablePlugins.Count != 0)
         {
             throw new InvalidOperationException("Cannot register plugins if plugins are already registered");
         }
@@ -28,35 +37,50 @@ public class PluginManager(string pluginPath)
         // Import files
         foreach (var file in files)
         {
-            RegisterPlugin(file);
+            try
+            {
+                RegisterPlugin(file);
+            }
+            catch (Exception)
+            {
+                Console.Error.WriteLine($"Cannot register plugin {file}: Probably Not a plugin");
+                throw;
+            }
         }
 
+        LoadModels();
         LoadCommands();
+        foreach (var plugin in Plugins)
+        {
+            plugin.Plugin.OnStart();
+        }
     }
 
     private void RegisterPlugin(string pluginLocation)
     {
+        // Check if it's a symlink
+        var fileInfo = new FileInfo(pluginLocation);
+        if (fileInfo.LinkTarget != null)
+            pluginLocation = fileInfo.LinkTarget;
         var loadContext = new PluginLoadContext(pluginLocation);
         Assembly assembly = loadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginLocation)));
         var plugin = new APlugin(assembly);
-        _plugins[plugin.Id] = plugin;
+        _availablePlugins[plugin.Id] = plugin;
     }
 
     public APlugin? GetPlugin(string pluginName)
     {
-        _plugins.TryGetValue(pluginName, out var plugin);
+        _availablePlugins.TryGetValue(pluginName.ToLower(), out var plugin);
         return plugin;
     }
 
     public APlugin? GetInstalledPlugin(string pluginName)
     {
-        _plugins.TryGetValue(pluginName, out var plugin);
-        if (plugin is not { IsInstalled: true })
-            return null;
+        _plugins.TryGetValue(pluginName.ToLower(), out var plugin);
         return plugin;
     }
 
-    public bool IsPluginInstalled(string pluginName) => GetPlugin(pluginName)?.IsInstalled ?? false;
+    public bool IsPluginInstalled(string pluginName) => _availablePlugins.ContainsKey(pluginName.ToLower());
 
     /**
      * Install given plugin and all his dependencies
@@ -77,7 +101,7 @@ public class PluginManager(string pluginPath)
         {
             // Exception while setting plugins and dependencies as installing.
             // This means a dependency was not found. Roll back all "To Install" plugins
-            foreach (var pl in Plugins.Where(pl => pl.State == APlugin.PluginState.ToInstall))
+            foreach (var pl in AvailablePlugins.Where(pl => pl.State == APlugin.PluginState.ToInstall))
             {
                 pl.State = APlugin.PluginState.NotInstalled;
             }
@@ -88,8 +112,31 @@ public class PluginManager(string pluginPath)
 
     public void InstallNeededPlugins()
     {
-        var pluginsToInstall = Plugins.Where(pl => pl.State == APlugin.PluginState.ToInstall).ToList();
+        var pluginsToInstall = AvailablePlugins.Where(pl => pl.State == APlugin.PluginState.ToInstall).ToList();
         Console.WriteLine($"Installing {pluginsToInstall.Count} plugins");
+        try
+        {
+            foreach (var plugin in pluginsToInstall)
+            {
+                _plugins[plugin.Id] = plugin;
+                plugin.State = APlugin.PluginState.Installed;
+                try
+                {
+                    plugin.Plugin.OnStart();
+                }
+                catch (Exception)
+                {
+                    _plugins.Remove(plugin.Id);
+                    plugin.State = APlugin.PluginState.NotInstalled;
+                    throw;
+                }
+            }
+        }
+        finally
+        {
+            LoadModels();
+            LoadCommands();
+        }
     }
 
     /**
@@ -119,13 +166,26 @@ public class PluginManager(string pluginPath)
     {
         // Load commands on installed plugins
         // TODO Load it in a specific order (based on depends)
+        _commands.Clear();
         foreach (var plugin in Plugins)
         {
-            if (!plugin.IsInstalled)
-                continue;
             foreach (var command in plugin.Commands)
             {
                 _commands[command.Name] = command;
+            }
+        }
+    }
+
+    private void LoadModels()
+    {
+        // Load models on installed plugins
+        // TODO Load it in a specific order (based on depends)
+        _models.Clear();
+        foreach (var plugin in Plugins)
+        {
+            foreach (var (id, model) in plugin.Models)
+            {
+                _models[id] = model;
             }
         }
     }

@@ -1,4 +1,5 @@
 ﻿using CommandLine;
+using lib.model;
 using lib.plugin;
 
 
@@ -11,7 +12,7 @@ internal static class Program
         try
         {
             var parser = Parser.Default.ParseArguments<Config>(args);
-
+            
             if (parser.Tag == ParserResultType.NotParsed)
             {
                 return;
@@ -20,9 +21,9 @@ internal static class Program
             var pluginManager = new PluginManager(parser.Value.PluginsPath);
             Console.WriteLine("Registering plugins ...");
             pluginManager.RegisterPlugins();
-            Console.WriteLine($"{pluginManager.PluginSize} plugins registered!");
-            Console.WriteLine($"{pluginManager.InstalledPluginSize} plugins installed!");
-
+            Console.WriteLine($"{pluginManager.AvailablePluginsSize} plugins registered!");
+            Console.WriteLine($"{pluginManager.PluginsSize} plugins installed!");
+            
             Console.WriteLine($"Installing {string.Join(", ", parser.Value.Install)}");
             foreach (var pluginToInstall in parser.Value.Install)
             {
@@ -36,6 +37,10 @@ internal static class Program
                 pluginManager.SetPluginToInstall(plugin);
             }
             pluginManager.InstallNeededPlugins();
+            Console.WriteLine($"We have {pluginManager.PluginsSize} installed plugins");
+            Console.WriteLine($"We have {pluginManager.CommandsSize} installed commands");
+            Console.WriteLine($"We have {pluginManager.ModelsSize} installed models");
+            
             Console.WriteLine($"Updating {string.Join(", ", parser.Value.Update)}");
         }
         catch (Exception ex)

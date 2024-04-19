@@ -1,13 +1,6 @@
 namespace lib.plugin;
 
-public interface ICommand
-{
-    string Name { get; }
-    string Description { get; }
-
-    int Execute();
-}
-
+// TODO Use Attribute instead of interface
 public interface IPlugin
 {
     string Id { get; }
@@ -17,4 +10,7 @@ public interface IPlugin
     string Version { get; }
     
     string[] Dependencies => [];
+
+    void OnStart() {}
+    void OnStop() {}
 }

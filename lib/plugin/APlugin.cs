@@ -1,28 +1,52 @@
 ﻿using System.Reflection;
+using lib.command;
+using lib.model;
 
 namespace lib.plugin;
 
-public class APlugin(Assembly assembly)
+public class APlugin
 {
-    public readonly IPlugin Plugin = GetOfType<IPlugin>(assembly).First();
-    public string Id => Plugin.Id;
+    public readonly IPlugin Plugin;
+    public string Id => Plugin.Id.ToLower();
     public string Name => Plugin.Name;
     public string Version => Plugin.Version;
     public string[] Dependencies => Plugin.Dependencies;
-    public readonly IEnumerable<ICommand> Commands = GetOfType<ICommand>(assembly);
+    public readonly List<ICommand> Commands;
+    public readonly Dictionary<string, AModel> Models;
     public bool IsInstalled => State == PluginState.Installed;
     public PluginState State { get; internal set; } = PluginState.NotInstalled;
 
-    private static IEnumerable<T> GetOfType<T>(Assembly assembly) {
-        foreach (var type in assembly.GetTypes()) 
+    public APlugin(Assembly assembly)
+    {
+        var pluginType = GetOfType<IPlugin>(assembly).First();
+        var plugin = (IPlugin?) Activator.CreateInstance(pluginType);
+        Plugin = plugin ?? throw new InvalidOperationException($"Cannot create an instance of {pluginType}");
+
+        // Load commands
+        Commands = [];
+        foreach (var commandType in GetOfType<ICommand>(assembly))
         {
-            if (!typeof(T).IsAssignableFrom(type))
-                continue;
-            var command = (T?) Activator.CreateInstance(type);
+            var command = (ICommand?)Activator.CreateInstance(commandType);
             if (command == null)
-                continue;
-            yield return command;
+                throw new InvalidOperationException($"Cannot create an instance of command {commandType}");
+            Commands.Add(command);
         }
+
+        // Load models
+        Models = new Dictionary<string, AModel>();
+        foreach (var modelType in GetOfType<Model>(assembly))
+        {
+            Attribute? attribute = modelType.GetCustomAttribute(typeof(ModelDefinitionAttribute));
+            if (attribute == null)
+                throw new InvalidOperationException($"Model class {modelType} does not have attribute ModelDefinitionAttribute");
+            var definition = (ModelDefinitionAttribute) attribute;
+            Models[definition.Name] = new AModel(definition, modelType);
+        }
+    }
+
+    private static IEnumerable<Type> GetOfType<T>(Assembly assembly)
+    {
+        return assembly.GetTypes().Where(type => typeof(T).IsAssignableFrom(type));
     }
 
     public enum PluginState
