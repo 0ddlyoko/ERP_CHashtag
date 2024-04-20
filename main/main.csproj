@@ -13,6 +13,6 @@
     
     <ItemGroup>
         <!-- Exclude lib.dll from being copied to output directory -->
-        <Content Remove="..\lib\bin\$(Configuration)\lib.dll" />
+        <Content Remove="..\main\bin\$(Configuration)\lib.dll" />
     </ItemGroup>
 </Project>

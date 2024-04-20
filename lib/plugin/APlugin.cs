@@ -12,7 +12,7 @@ public class APlugin
     public string Version => Plugin.Version;
     public string[] Dependencies => Plugin.Dependencies;
     public readonly List<ICommand> Commands;
-    public readonly Dictionary<string, AModel> Models;
+    public readonly Dictionary<string, List<PluginModel>> Models;
     public bool IsInstalled => State == PluginState.Installed;
     public PluginState State { get; internal set; } = PluginState.NotInstalled;
 
@@ -33,14 +33,15 @@ public class APlugin
         }
 
         // Load models
-        Models = new Dictionary<string, AModel>();
+        Models = new Dictionary<string, List<PluginModel>>();
         foreach (var modelType in GetOfType<Model>(assembly))
         {
-            Attribute? attribute = modelType.GetCustomAttribute(typeof(ModelDefinitionAttribute));
-            if (attribute == null)
+            var modelDefinition = modelType.GetCustomAttribute<ModelDefinitionAttribute>();
+            if (modelDefinition == null)
                 throw new InvalidOperationException($"Model class {modelType} does not have attribute ModelDefinitionAttribute");
-            var definition = (ModelDefinitionAttribute) attribute;
-            Models[definition.Name] = new AModel(definition, modelType);
+            if (!Models.ContainsKey(modelDefinition.Name))
+                Models[modelDefinition.Name] = [];
+            Models[modelDefinition.Name].Add(new PluginModel(this, modelDefinition, modelType));
         }
     }
 

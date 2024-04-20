@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using lib.command;
 using lib.model;
+using lib.util;
 
 namespace lib.plugin;
 
@@ -9,19 +10,22 @@ public class PluginManager(string pluginPath)
     private readonly Dictionary<string, APlugin> _availablePlugins = new();
     private readonly Dictionary<string, APlugin> _plugins = new();
     private readonly Dictionary<string, ICommand> _commands = new();
-    private readonly Dictionary<string, AModel> _models = new();
+    private readonly Dictionary<string, List<PluginModel>> _pluginModels = new();
+    private readonly Dictionary<string, FinalModel> _models = new();
 
+    public readonly List<APlugin> PluginsInDependencyOrder = [];
     public IEnumerable<APlugin> AvailablePlugins => _availablePlugins.Values;
     public int AvailablePluginsSize => _availablePlugins.Count;
-    
+
     public IEnumerable<APlugin> Plugins => _plugins.Values;
     public int PluginsSize => _plugins.Count;
-    
+
     public IEnumerable<ICommand> Commands => _commands.Values;
     public int CommandsSize => _commands.Count;
-    
-    public IEnumerable<AModel> Models => _models.Values;
+
+    public IEnumerable<FinalModel> Models => _models.Values;
     public int ModelsSize => _models.Count;
+    public int TotalModelsSize => _pluginModels.Values.SelectMany(p => p).Count();
 
     public void RegisterPlugins()
     {
@@ -29,6 +33,7 @@ public class PluginManager(string pluginPath)
         {
             throw new InvalidOperationException("Cannot register plugins if plugins are already registered");
         }
+
         if (pluginPath == null)
             throw new InvalidOperationException("Invalid root directory for plugins!");
         if (!Directory.Exists(pluginPath))
@@ -48,8 +53,7 @@ public class PluginManager(string pluginPath)
             }
         }
 
-        LoadModels();
-        LoadCommands();
+        LoadPlugins();
         foreach (var plugin in Plugins)
         {
             plugin.Plugin.OnStart();
@@ -66,6 +70,15 @@ public class PluginManager(string pluginPath)
         Assembly assembly = loadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginLocation)));
         var plugin = new APlugin(assembly);
         _availablePlugins[plugin.Id] = plugin;
+    }
+
+    public IEnumerable<PluginModel> GetModelsInDependencyOrder(string modelName)
+    {
+        var models = _pluginModels[modelName].ToLookup(pluginModel => pluginModel.Plugin);
+        if (models.Count == 0)
+            return [];
+        var pluginToFilterOn = models.Select(m => m.Key).ToHashSet();
+        return PluginsInDependencyOrder.Where(plugin => pluginToFilterOn.Contains(plugin)).SelectMany(pl => models[pl]);
     }
 
     public APlugin? GetPlugin(string pluginName)
@@ -134,8 +147,7 @@ public class PluginManager(string pluginPath)
         }
         finally
         {
-            LoadModels();
-            LoadCommands();
+            LoadPlugins();
         }
     }
 
@@ -162,6 +174,55 @@ public class PluginManager(string pluginPath)
             throw new InvalidOperationException("This plugin is not registered, or is not the same as given one!");
     }
 
+    private void LoadPlugins()
+    {
+        LoadDependencies();
+        LoadModels();
+        LoadCommands();
+    }
+
+    private void LoadDependencies()
+    {
+        PluginsInDependencyOrder.Clear();
+        var dependencies = new Dictionary<string, string[]>();
+        foreach (var plugin in _plugins)
+        {
+            dependencies[plugin.Key] = plugin.Value.Dependencies;
+        }
+
+        List<string> pluginsOrdered = DependencyGraph.GetOrderedGraph(dependencies);
+        foreach (var pluginOrdered in pluginsOrdered)
+        {
+            PluginsInDependencyOrder.Add(GetPlugin(pluginOrdered)!);
+        }
+    }
+
+    private void LoadModels()
+    {
+        // Load models on installed plugins
+        // TODO Load it in a specific order (based on depends)
+        _pluginModels.Clear();
+        _models.Clear();
+        foreach (var plugin in PluginsInDependencyOrder)
+        {
+            foreach (var (id, models) in plugin.Models)
+            {
+                // Plugin models
+                if (!_pluginModels.ContainsKey(id))
+                    _pluginModels[id] = [];
+                _pluginModels[id].AddRange(models);
+                // Models
+                foreach (var model in models)
+                {
+                    if (_models.TryGetValue(id, out var finalModel))
+                        finalModel.MergeWith(model);
+                    else
+                        _models[id] = new FinalModel(model);
+                }
+            }
+        }
+    }
+
     private void LoadCommands()
     {
         // Load commands on installed plugins
@@ -172,20 +233,6 @@ public class PluginManager(string pluginPath)
             foreach (var command in plugin.Commands)
             {
                 _commands[command.Name] = command;
-            }
-        }
-    }
-
-    private void LoadModels()
-    {
-        // Load models on installed plugins
-        // TODO Load it in a specific order (based on depends)
-        _models.Clear();
-        foreach (var plugin in Plugins)
-        {
-            foreach (var (id, model) in plugin.Models)
-            {
-                _models[id] = model;
             }
         }
     }

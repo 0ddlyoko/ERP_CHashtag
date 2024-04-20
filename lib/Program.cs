@@ -39,7 +39,7 @@ internal static class Program
             pluginManager.InstallNeededPlugins();
             Console.WriteLine($"We have {pluginManager.PluginsSize} installed plugins");
             Console.WriteLine($"We have {pluginManager.CommandsSize} installed commands");
-            Console.WriteLine($"We have {pluginManager.ModelsSize} installed models");
+            Console.WriteLine($"We have {pluginManager.ModelsSize} installed models, with a total of {pluginManager.TotalModelsSize} override");
             
             Console.WriteLine($"Updating {string.Join(", ", parser.Value.Update)}");
         }
