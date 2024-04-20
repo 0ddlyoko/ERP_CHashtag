@@ -135,6 +135,10 @@ public class PluginManager(string pluginPath)
                 plugin.State = APlugin.PluginState.Installed;
                 try
                 {
+                    // Yeah, we call this method in the for loop.
+                    // We need to do it to be able to install plugins one by one.
+                    // At least, if a plugin is failing to install, other plugins are installed
+                    LoadPlugins();
                     plugin.Plugin.OnStart();
                 }
                 catch (Exception)
@@ -147,6 +151,7 @@ public class PluginManager(string pluginPath)
         }
         finally
         {
+            // Call it here, as it's possible that the installation fails
             LoadPlugins();
         }
     }
