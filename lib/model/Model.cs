@@ -7,7 +7,7 @@ namespace lib.model;
  */
 public class Model
 {
-    [FieldDefinition(Name = "id", Description = "Id of the record")]
+    [FieldDefinition(Name = "Id", Description = "Id of the record")]
     public int Id;
     // TODO Add creation date & update date
 }

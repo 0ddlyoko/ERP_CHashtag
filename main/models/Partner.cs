@@ -12,6 +12,9 @@ public class Partner: Model
 
     [FieldDefinition(Description = "Age of the partner")]
     public int Age = 0;
+
+    // Compute
+    public string DisplayName => $"Name: {Name}, Age: {Age}";
 }
 
 [ModelDefinition("partner", Description = "Contact")]

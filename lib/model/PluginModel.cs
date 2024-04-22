@@ -10,14 +10,14 @@ namespace lib.model;
 public class PluginModel
 {
     public readonly APlugin Plugin;
-    private readonly Type _type;
+    public readonly Type Type;
     public readonly string Name;
     public readonly string? Description;
     public readonly Dictionary<string, PluginField> Fields;
 
     public PluginModel(APlugin plugin, ModelDefinitionAttribute definition, Type type)
     {
-        _type = type;
+        Type = type;
         Plugin = plugin;
         Name = definition.Name;
         Description = definition.Description;
@@ -34,5 +34,5 @@ public class PluginModel
     }
     
     // TODO Add environment once implemented
-    public T? CreateNewInstance<T>() => (T?) Activator.CreateInstance(_type);
+    public T? CreateNewInstance<T>() => (T?) Activator.CreateInstance(Type);
 }

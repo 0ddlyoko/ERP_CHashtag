@@ -41,7 +41,8 @@ public class APlugin
                 throw new InvalidOperationException($"Model class {modelType} does not have attribute ModelDefinitionAttribute");
             if (!Models.ContainsKey(modelDefinition.Name))
                 Models[modelDefinition.Name] = [];
-            Models[modelDefinition.Name].Add(new PluginModel(this, modelDefinition, modelType));
+            var pluginModel = new PluginModel(this, modelDefinition, modelType);
+            Models[modelDefinition.Name].Add(pluginModel);
         }
     }
 

@@ -11,6 +11,7 @@ public class PluginManager(string pluginPath)
     private readonly Dictionary<string, APlugin> _plugins = new();
     private readonly Dictionary<string, ICommand> _commands = new();
     private readonly Dictionary<string, List<PluginModel>> _pluginModels = new();
+    private readonly Dictionary<Type, PluginModel> _typeToPluginModel = new();
     private readonly Dictionary<string, FinalModel> _models = new();
 
     public readonly List<APlugin> PluginsInDependencyOrder = [];
@@ -54,9 +55,10 @@ public class PluginManager(string pluginPath)
         }
 
         LoadPlugins();
+        Environment env = new(this);
         foreach (var plugin in Plugins)
         {
-            plugin.Plugin.OnStart();
+            plugin.Plugin.OnStart(env);
         }
     }
 
@@ -127,6 +129,7 @@ public class PluginManager(string pluginPath)
     {
         var pluginsToInstall = AvailablePlugins.Where(pl => pl.State == APlugin.PluginState.ToInstall).ToList();
         Console.WriteLine($"Installing {pluginsToInstall.Count} plugins");
+        Environment env = new(this);
         try
         {
             foreach (var plugin in pluginsToInstall)
@@ -139,7 +142,7 @@ public class PluginManager(string pluginPath)
                     // We need to do it to be able to install plugins one by one.
                     // At least, if a plugin is failing to install, other plugins are installed
                     LoadPlugins();
-                    plugin.Plugin.OnStart();
+                    plugin.Plugin.OnStart(env);
                 }
                 catch (Exception)
                 {
@@ -179,6 +182,10 @@ public class PluginManager(string pluginPath)
             throw new InvalidOperationException("This plugin is not registered, or is not the same as given one!");
     }
 
+    public PluginModel GetPluginModelFromType(Type type) => _typeToPluginModel[type];
+
+    public FinalModel GetFinalModel(string model) => _models[model];
+
     private void LoadPlugins()
     {
         LoadDependencies();
@@ -207,6 +214,7 @@ public class PluginManager(string pluginPath)
         // Load models on installed plugins
         // TODO Load it in a specific order (based on depends)
         _pluginModels.Clear();
+        _typeToPluginModel.Clear();
         _models.Clear();
         foreach (var plugin in PluginsInDependencyOrder)
         {
@@ -223,6 +231,7 @@ public class PluginManager(string pluginPath)
                         finalModel.MergeWith(model);
                     else
                         _models[id] = new FinalModel(model);
+                    _typeToPluginModel[model.Type] = model;
                 }
             }
         }

@@ -42,4 +42,10 @@ public class FinalModel
                 Fields[id] = new FinalField(field);
         }
     }
+
+    public Dictionary<string, object> GetDefaultValues()
+    {
+        // TODO Add default values
+        return new Dictionary<string, object>();
+    }
 }
