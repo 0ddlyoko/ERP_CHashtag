@@ -28,6 +28,8 @@ public class PluginModel
             var fieldDefinition = fieldInfo.GetCustomAttribute<FieldDefinitionAttribute>();
             if (fieldDefinition == null)
                 continue;
+            if (fieldInfo.Name == "Id")
+                continue;
             var pluginField = new PluginField(this, fieldDefinition, fieldInfo);
             Fields[pluginField.FieldName] = pluginField;
         }

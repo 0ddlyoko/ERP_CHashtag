@@ -12,7 +12,7 @@ public class PluginField
 {
     public readonly PluginModel PluginModel;
     public APlugin Plugin => PluginModel.Plugin;
-    private readonly Type _type;
+    public readonly Type Type;
     public readonly string FieldName;
     public readonly string? Name;
     public readonly string? Description;
@@ -21,7 +21,7 @@ public class PluginField
     public PluginField(PluginModel pluginModel, FieldDefinitionAttribute definition, FieldInfo fieldInfo)
     {
         PluginModel = pluginModel;
-        _type = fieldInfo.FieldType;
+        Type = fieldInfo.FieldType;
         FieldName = fieldInfo.Name;
         Name = definition.Name;
         Description = definition.Description;

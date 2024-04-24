@@ -12,11 +12,18 @@ public class MainPlugin: IPlugin
 
     public void OnStart(Environment env)
     {
-        Partner partner = env.Create<Partner>();
-        partner.Name = "0ddlyoko";
+        Partner partner1 = env.Create<Partner>();
+        Partner2 partner2 = env.Get<Partner2>(partner1.Id);
         
-        Console.WriteLine($"Partner created! Name = {partner.Name}");
-        env.ResetModelToCacheState(partner);
-        Console.WriteLine($"Partner created! Name = {partner.Name}");
+        Console.WriteLine($"Empty: Partner1 Name = {partner1.Name}");
+        Console.WriteLine($"Empty: Partner2 Name = {partner2.Name}");
+        
+        partner1.Name = "0ddlyoko";
+        Console.WriteLine($"Name: Partner1 Name = {partner1.Name}");
+        Console.WriteLine($"Name: Partner2 Name = {partner2.Name}");
+        
+        partner1.Save();
+        Console.WriteLine($"Saved: Partner1 Name = {partner1.Name}");
+        Console.WriteLine($"Saved: Partner2 Name = {partner2.Name}");
     }
 }
