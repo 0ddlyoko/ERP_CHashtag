@@ -1,7 +1,9 @@
 ﻿using System.ComponentModel;
 using System.Reflection;
+using lib.field.attributes;
 using lib.model;
 using lib.plugin;
+using DefaultValueAttribute = lib.field.attributes.DefaultValueAttribute;
 
 namespace lib.field;
 
@@ -16,6 +18,8 @@ public class PluginField
     public readonly string FieldName;
     public readonly string? Name;
     public readonly string? Description;
+    public readonly bool HasDefaultValue;
+    public readonly object? DefaultValue;
     public readonly FieldType FieldType;
 
     public PluginField(PluginModel pluginModel, FieldDefinitionAttribute definition, FieldInfo fieldInfo)
@@ -25,6 +29,15 @@ public class PluginField
         FieldName = fieldInfo.Name;
         Name = definition.Name;
         Description = definition.Description;
+        
+        var defaultValue = fieldInfo.GetCustomAttribute<DefaultValueAttribute>();
+        
+        HasDefaultValue = false;
+        if (defaultValue != null)
+        {
+            HasDefaultValue = true;
+            DefaultValue = defaultValue.DefaultValue;
+        }
         FieldType = Type.GetTypeCode(fieldInfo.FieldType) switch
         {
             TypeCode.String => FieldType.String,

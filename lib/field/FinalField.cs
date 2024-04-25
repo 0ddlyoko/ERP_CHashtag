@@ -11,6 +11,7 @@ public class FinalField
     public readonly List<PluginField> AllOccurences = [];
     public string Name;
     public string Description;
+    public object? DefaultValue;
 
     public FinalField(PluginField firstOccurence)
     {
@@ -20,6 +21,8 @@ public class FinalField
         AllOccurences.Add(firstOccurence);
         Name = firstOccurence.Name ?? FieldName;
         Description = firstOccurence.Description ?? Name;
+        if (firstOccurence.HasDefaultValue)
+            DefaultValue = firstOccurence.DefaultValue;
     }
 
     public void MergeWith(PluginField pluginField)
@@ -35,5 +38,7 @@ public class FinalField
             Name = pluginField.Name;
         if (pluginField.Description != null)
             Description = pluginField.Description;
+        if (pluginField.HasDefaultValue)
+            DefaultValue = pluginField.DefaultValue;
     }
 }

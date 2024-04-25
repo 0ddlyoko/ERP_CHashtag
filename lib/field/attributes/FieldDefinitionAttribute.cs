@@ -1,4 +1,4 @@
-﻿namespace lib.field;
+﻿namespace lib.field.attributes;
 
 
 [AttributeUsage(AttributeTargets.Field)]

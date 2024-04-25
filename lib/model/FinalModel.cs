@@ -46,6 +46,12 @@ public class FinalModel
     public Dictionary<string, object> GetDefaultValues()
     {
         // TODO Add default values
-        return new Dictionary<string, object>();
+        var dict = new Dictionary<string, object>();
+        foreach ((string fieldName, FinalField field) in Fields)
+        {
+            if (field.DefaultValue != null)
+                dict[fieldName] = field.DefaultValue;
+        }
+        return dict;
     }
 }
