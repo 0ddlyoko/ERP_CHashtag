@@ -24,9 +24,9 @@ public class CachedModel
     {
         if (pluginModel.Fields.Count == 0)
             return;
+        var type = model.GetType();
         foreach ((string fieldName, _) in pluginModel.Fields)
         {
-            var type = model.GetType();
             var fieldInfo = type.GetField(fieldName);
             if (fieldInfo == null)
                 throw new InvalidOperationException($"Cannot fill field {fieldName} in {model}: Cannot retrieve field!");
@@ -40,13 +40,33 @@ public class CachedModel
         }
     }
 
-    private void ModifyField(string fieldName, object? newValue, Model originalModel)
+    /**
+     * Update the cache based on given data
+     */
+    public void UpdateCacheFromData<T>(T model, IReadOnlyDictionary<string, object?> data, bool updateDirty = true) where T: Model
+    {
+        var type = model.GetType();
+        foreach ((string fieldName, object? newValue) in data)
+        {
+            var fieldInfo = type.GetField(fieldName);
+            if (fieldInfo == null)
+                throw new InvalidOperationException($"Cannot fill field {fieldName} in {model}: Cannot retrieve field!");
+            Data.TryGetValue(fieldName, out object? existingValue);
+            if (existingValue == newValue)
+                continue;
+            ModifyField(fieldName, newValue, model, skipOriginalModel: false);
+            if (updateDirty)
+                Dirty = true;
+        }
+    }
+
+    private void ModifyField(string fieldName, object? newValue, Model originalModel, bool skipOriginalModel = true)
     {
         if (newValue == null)
             Data.Remove(fieldName);
         else
             Data[fieldName] = newValue;
-        foreach (var (model, _) in CreatedModels.Where(model => model.Key != originalModel && model.Value.Fields.ContainsKey(fieldName)))
+        foreach (var (model, _) in CreatedModels.Where(model => model.Value.Fields.ContainsKey(fieldName) && (!skipOriginalModel || model.Key != originalModel)))
         {
             var type = model.GetType();
             var field = type.GetField(fieldName);

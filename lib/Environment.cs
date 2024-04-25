@@ -59,8 +59,21 @@ public class Environment
 
     private void Save<T>(T model, PluginModel pluginModel) where T : Model
     {
-        // Save model in cache and in database
+        // Save model in cache
         SaveModelToCache(model, pluginModel);
+        // Save model in database
+    }
+
+    public void Update<T>(T model, IReadOnlyDictionary<string, object?> data) where T : Model =>
+        Update(model, data, PluginManager.GetPluginModelFromType(model.GetType()));
+
+    private void Update<T>(T model, IReadOnlyDictionary<string, object?> data, PluginModel pluginModel) where T : Model
+    {
+        // Save model, then update it with new values
+        SaveModelToCache(model, pluginModel);
+        // Now, update
+        UpdateModelToCache(model, data, pluginModel);
+        // Save it in database
     }
 
     /**
@@ -124,6 +137,15 @@ public class Environment
         }
         // Now, update values in cache
         cachedModel.UpdateCacheFromModel(model, pluginModel);
+        cachedModel.Dirty = true;
+    }
+
+    private void UpdateModelToCache<T>(T model, IReadOnlyDictionary<string, object?> data, PluginModel pluginModel)
+        where T : Model
+    {
+        // We assume the model & id already exist in cache
+        var cachedModel = _cachedModels[pluginModel.Name][model.Id];
+        cachedModel.UpdateCacheFromData(model, data);
         cachedModel.Dirty = true;
     }
 }
