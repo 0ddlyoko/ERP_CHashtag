@@ -8,10 +8,10 @@ namespace lib.model;
 public class Model
 {
     [FieldDefinition(Name = "Id", Description = "Id of the record")]
-    public int Id;
+    public required int Id;
     // TODO Add creation date & update date
 
-    public Environment Env;
+    public required Environment Env;
 
     /**
      * Clear data not saved to environment, and restore default data.
