@@ -1,5 +1,4 @@
-﻿using lib.field;
-using lib.field.attributes;
+﻿using lib.field.attributes;
 
 namespace main.models;
 
@@ -16,8 +15,15 @@ public class Partner: Model
     [DefaultValue(42)]
     public int Age = 0;
 
+    [FieldDefinition]
+    [DefaultValue(nameof(DefaultRandomColor), isMethod: true)]
+    public int Color = 0;
+
     // Compute
     public string DisplayName => $"Name: {Name}, Age: {Age}";
+    
+    // Default method
+    public static int DefaultRandomColor() => 42;
 }
 
 [ModelDefinition("partner", Description = "Contact")]
@@ -28,7 +34,7 @@ public class Partner2: Model
     public string Name = "";
 
     [FieldDefinition]
-    public int Test;
+    public int Test = 0;
 }
 
 [ModelDefinition("partner", Description = "Contact")]

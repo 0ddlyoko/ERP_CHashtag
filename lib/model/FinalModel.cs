@@ -49,8 +49,9 @@ public class FinalModel
         var dict = new Dictionary<string, object>();
         foreach ((string fieldName, FinalField field) in Fields)
         {
-            if (field.DefaultValue != null)
-                dict[fieldName] = field.DefaultValue;
+            object? defaultValue = field.GetDefaultValue();
+            if (defaultValue != null)
+                dict[fieldName] = defaultValue;
         }
         return dict;
     }

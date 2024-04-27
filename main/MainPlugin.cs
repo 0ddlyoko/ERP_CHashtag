@@ -13,7 +13,6 @@ public class MainPlugin: IPlugin
     public void OnStart(Environment env)
     {
         Partner partner1 = env.Create<Partner>();
-        partner1.Age = 100;
         Partner2 partner2 = partner1.Transform<Partner2>();
         
         Console.WriteLine($"Test: {partner2.Test}");

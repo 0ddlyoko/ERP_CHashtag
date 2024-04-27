@@ -54,6 +54,9 @@ public class PluginManager(string pluginPath)
             }
         }
 
+        // Plugins are registered, now enable already installed plugins
+        // TODO
+        
         LoadPlugins();
         Environment env = new(this);
         foreach (var plugin in Plugins)

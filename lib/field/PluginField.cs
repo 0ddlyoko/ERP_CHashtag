@@ -19,6 +19,7 @@ public class PluginField
     public readonly string? Name;
     public readonly string? Description;
     public readonly bool HasDefaultValue;
+    public readonly bool IsDefaultValueAMethod;
     public readonly object? DefaultValue;
     public readonly FieldType FieldType;
 
@@ -36,6 +37,7 @@ public class PluginField
         if (defaultValue != null)
         {
             HasDefaultValue = true;
+            IsDefaultValueAMethod = defaultValue.IsMethod;
             DefaultValue = defaultValue.DefaultValue;
         }
         FieldType = Type.GetTypeCode(fieldInfo.FieldType) switch
