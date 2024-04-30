@@ -85,8 +85,9 @@ public class Environment
         defaultValues["Id"] = id;
         return new CachedModel
         {
+            Env = this,
             Id = id,
-            Model = finalModel.Name,
+            Model = finalModel,
             Dirty = false,
             Data = defaultValues,
         };
@@ -97,9 +98,10 @@ public class Environment
      */
     private void InsertToCache(CachedModel cachedModel)
     {
-        if (!_cachedModels.ContainsKey(cachedModel.Model))
-            _cachedModels[cachedModel.Model] = new Dictionary<int, CachedModel>();
-        _cachedModels[cachedModel.Model][cachedModel.Id] = cachedModel;
+        string modelName = cachedModel.Model.Name;
+        if (!_cachedModels.ContainsKey(modelName))
+            _cachedModels[modelName] = new Dictionary<int, CachedModel>();
+        _cachedModels[modelName][cachedModel.Id] = cachedModel;
     }
 
     /**

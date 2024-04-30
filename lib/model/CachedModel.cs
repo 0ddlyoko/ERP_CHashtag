@@ -9,8 +9,9 @@ namespace lib.model;
  */
 public class CachedModel
 {
+    public Environment Env;
     public int Id = 0;
-    public string Model = "";
+    public FinalModel Model;
     public bool Dirty = false;
     // TODO Add a way to know which value have changed
     public Dictionary<string, object> Data = new();
@@ -74,5 +75,15 @@ public class CachedModel
                 throw new InvalidOperationException($"Cannot fill field {fieldName} in model {originalModel}: Cannot retrieve field!");
             field.SetValue(model, newValue);
         }
+        // Now, check if we need to call some computed method
+        CheckComputedMethods(fieldName);
+    }
+
+    private void CheckComputedMethods(string fieldName)
+    {
+        string[] fieldsToUpdate = Model.Fields[fieldName].InverseCompute;
+        if (fieldsToUpdate.Length == 0)
+            return;
+        
     }
 }

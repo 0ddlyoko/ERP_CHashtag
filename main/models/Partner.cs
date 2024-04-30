@@ -20,10 +20,27 @@ public class Partner: Model
     public int Color = 0;
 
     // Compute
-    public string DisplayName => $"Name: {Name}, Age: {Age}";
+    [FieldDefinition(Description = "Age of the partner")]
+    [DefaultValue(nameof(ComputeDisplayName), isMethod: true)]
+    public string DisplayName = "";
     
     // Default method
     public static int DefaultRandomColor() => 42;
+
+    [Computed(["Name", "Age"])]
+    private string ComputeDisplayName()
+    {
+        return $"Name: {Name}, Age: {Age}";
+    }
+    
+    public string Test
+    {
+        get
+        {
+            Env.ResetModelToCacheState(this);
+            return "test";
+        }
+    }
 }
 
 [ModelDefinition("partner", Description = "Contact")]

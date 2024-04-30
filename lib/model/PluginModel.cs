@@ -31,7 +31,7 @@ public class PluginModel
                 continue;
             if (fieldInfo.Name == "Id")
                 continue;
-            var pluginField = new PluginField(this, fieldDefinition, fieldInfo);
+            var pluginField = new PluginField(this, fieldDefinition, fieldInfo, type);
             Fields[pluginField.FieldName] = pluginField;
         }
     }

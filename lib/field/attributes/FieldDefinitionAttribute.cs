@@ -1,7 +1,7 @@
 ﻿namespace lib.field.attributes;
 
 
-[AttributeUsage(AttributeTargets.Field)]
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
 public class FieldDefinitionAttribute: Attribute
 {
     // If empty, take the name of the field

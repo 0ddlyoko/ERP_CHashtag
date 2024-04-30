@@ -11,18 +11,22 @@ public class FinalField
     public readonly string FieldName;
     public readonly FieldType FieldType;
     public readonly PluginField FirstOccurence;
+    public PluginField LastOccurence;
     public readonly List<PluginField> AllOccurences = [];
     public string Name;
     public string Description;
     public PluginModel? DefaultValuePluginModel;
     public bool IsDefaultValueAMethod;
     public object? DefaultValue;
+    public string[] Compute;
+    public string[] InverseCompute;
 
     public FinalField(PluginField firstOccurence)
     {
         FieldName = firstOccurence.FieldName;
         FieldType = firstOccurence.FieldType;
         FirstOccurence = firstOccurence;
+        LastOccurence = firstOccurence;
         AllOccurences.Add(firstOccurence);
         Name = firstOccurence.Name ?? FieldName;
         Description = firstOccurence.Description ?? Name;
@@ -32,6 +36,7 @@ public class FinalField
             IsDefaultValueAMethod = firstOccurence.IsDefaultValueAMethod;
             DefaultValue = firstOccurence.DefaultValue;
         }
+        Compute = firstOccurence.Compute;
     }
 
     public void MergeWith(PluginField pluginField)
@@ -53,6 +58,8 @@ public class FinalField
             IsDefaultValueAMethod = pluginField.IsDefaultValueAMethod;
             DefaultValue = pluginField.DefaultValue;
         }
+        Compute = pluginField.Compute;
+        LastOccurence = pluginField;
     }
 
     public object? GetDefaultValue()

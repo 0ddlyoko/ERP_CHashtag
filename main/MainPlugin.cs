@@ -34,5 +34,7 @@ public class MainPlugin: IPlugin
         });
         Console.WriteLine($"Saved: Partner1 Name = {partner1.Name}");
         Console.WriteLine($"Saved: Partner2 Name = {partner2.Name}");
+        
+        Console.WriteLine($"DisplayName: {partner1.DisplayName}");
     }
 }
