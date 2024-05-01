@@ -22,7 +22,13 @@ public static class DependencyGraph
 
     private static void Visit(IList<string> result, IDictionary<string, bool> marked, IReadOnlyDictionary<string, string[]> allDependencies, string currentNode)
     {
-        if (marked[currentNode])
+        if (!marked.TryGetValue(currentNode, out bool value))
+        {
+            // Key is not present in the list. Ignore it
+            result.Insert(0, currentNode);
+            return;
+        }
+        if (value)
             throw new InvalidOperationException("Recursive node !");
 
         if (result.Contains(currentNode))

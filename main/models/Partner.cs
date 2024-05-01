@@ -20,26 +20,18 @@ public class Partner: Model
     public int Color = 0;
 
     // Compute
-    [FieldDefinition(Description = "Age of the partner")]
+    [FieldDefinition(Description = "Name to display of the partner")]
     [DefaultValue(nameof(ComputeDisplayName), isMethod: true)]
     public string DisplayName = "";
     
     // Default method
     public static int DefaultRandomColor() => 42;
 
+    // Compute method
     [Computed(["Name", "Age"])]
-    private string ComputeDisplayName()
+    public void ComputeDisplayName()
     {
-        return $"Name: {Name}, Age: {Age}";
-    }
-    
-    public string Test
-    {
-        get
-        {
-            Env.ResetModelToCacheState(this);
-            return "test";
-        }
+        DisplayName = $"Name: {Name}, Age: {Age}";
     }
 }
 
@@ -58,9 +50,12 @@ public class Partner2: Model
 public class Partner3: Model
 {
     [FieldDefinition(Name="Not his Age", Description = "Age of him")]
+    [DefaultValue(nameof(DefaultAge), isMethod: true)]
     public int Age = 0;
 
     [FieldDefinition]
     [DefaultValue(30)]
     public int Test = 0;
+    
+    public static int DefaultAge() => 70;
 }

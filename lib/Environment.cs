@@ -19,13 +19,14 @@ public class Environment
     /**
      * Create a new record of type T
      */
-    public T Create<T>() where T: Model
+    public T Create<T>() where T : Model => Create<T>(new Dictionary<string, object?>());
+
+    public T Create<T>(Dictionary<string, object?> data) where T: Model
     {
         PluginModel pluginModel = PluginManager.GetPluginModelFromType(typeof(T));
         FinalModel finalModel = PluginManager.GetFinalModel(pluginModel.Name);
         var id = _id++;
-        var cachedModel = GetDefaultCachedModel(id, finalModel);
-        InsertToCache(cachedModel);
+        GetDefaultCachedModel(id, data, finalModel);
         return Get<T>(id, pluginModel);
     }
 
@@ -77,13 +78,22 @@ public class Environment
     }
 
     /**
-     * Create a default cached model based on given data
+     * Create a default cached model based on given data, and save it to cache
      */
-    private CachedModel GetDefaultCachedModel(int id, FinalModel finalModel)
+    private CachedModel GetDefaultCachedModel(int id, FinalModel finalModel) =>
+        GetDefaultCachedModel(id, new Dictionary<string, object?>(), finalModel);
+
+    private CachedModel GetDefaultCachedModel(int id, Dictionary<string, object?> data, FinalModel finalModel)
     {
-        Dictionary<string, object> defaultValues = finalModel.GetDefaultValues();
-        defaultValues["Id"] = id;
-        return new CachedModel
+        Dictionary<string, object> defaultValues = finalModel.GetDefaultValues(id);
+        foreach (var (key, value) in data)
+        {
+            if (value == null)
+                defaultValues.Remove(key);
+            else
+                defaultValues[key] = value;
+        }
+        CachedModel cachedModel = new CachedModel
         {
             Env = this,
             Id = id,
@@ -91,6 +101,10 @@ public class Environment
             Dirty = false,
             Data = defaultValues,
         };
+        InsertToCache(cachedModel);
+        // Once inserted, fill computed fields
+        finalModel.FillComputedValues(cachedModel);
+        return cachedModel;
     }
 
     /**
@@ -135,7 +149,6 @@ public class Environment
             // It looks like cached model is not present in cache. Let's create it
             var finalModel = PluginManager.GetFinalModel(pluginModel.Name);
             cachedModel = GetDefaultCachedModel(model.Id, finalModel);
-            _cachedModels[pluginModel.Name][model.Id] = cachedModel;
         }
         // Now, update values in cache
         cachedModel.UpdateCacheFromModel(model, pluginModel);

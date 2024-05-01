@@ -26,6 +26,7 @@ public class CachedModel
         if (pluginModel.Fields.Count == 0)
             return;
         var type = model.GetType();
+        List<string> fieldsUpdated = [];
         foreach ((string fieldName, _) in pluginModel.Fields)
         {
             var fieldInfo = type.GetField(fieldName);
@@ -35,10 +36,25 @@ public class CachedModel
             Data.TryGetValue(fieldName, out object? existingValue);
             if (existingValue == newValue)
                 continue;
+            // Another check, as sometimes you have 2 same values but from different class instance
+            if (existingValue != null && existingValue.Equals(newValue))
+                continue;
             ModifyField(fieldName, newValue, model);
             if (updateDirty)
                 Dirty = true;
+            fieldsUpdated.Add(fieldName);
         }
+
+        HashSet<string> fieldsToCompute = [];
+        foreach (var fieldUpdated in fieldsUpdated)
+        {
+            foreach (var fieldName in Model.Fields[fieldUpdated].InverseCompute.Select(finalField => finalField.Name))
+            {
+                fieldsToCompute.Add(fieldName);
+            }
+        }
+
+        Model.ComputeValues(this, fieldsToCompute);
     }
 
     /**
@@ -47,6 +63,7 @@ public class CachedModel
     public void UpdateCacheFromData<T>(T model, IReadOnlyDictionary<string, object?> data, bool updateDirty = true) where T: Model
     {
         var type = model.GetType();
+        List<string> fieldsUpdated = [];
         foreach ((string fieldName, object? newValue) in data)
         {
             var fieldInfo = type.GetField(fieldName);
@@ -58,7 +75,19 @@ public class CachedModel
             ModifyField(fieldName, newValue, model, skipOriginalModel: false);
             if (updateDirty)
                 Dirty = true;
+            fieldsUpdated.Add(fieldName);
         }
+
+        HashSet<string> fieldsToCompute = [];
+        foreach (var fieldUpdated in fieldsUpdated)
+        {
+            foreach (var fieldName in Model.Fields[fieldUpdated].InverseCompute.Select(finalField => finalField.Name))
+            {
+                fieldsToCompute.Add(fieldName);
+            }
+        }
+
+        Model.ComputeValues(this, fieldsToCompute);
     }
 
     private void ModifyField(string fieldName, object? newValue, Model originalModel, bool skipOriginalModel = true)
@@ -75,15 +104,5 @@ public class CachedModel
                 throw new InvalidOperationException($"Cannot fill field {fieldName} in model {originalModel}: Cannot retrieve field!");
             field.SetValue(model, newValue);
         }
-        // Now, check if we need to call some computed method
-        CheckComputedMethods(fieldName);
-    }
-
-    private void CheckComputedMethods(string fieldName)
-    {
-        string[] fieldsToUpdate = Model.Fields[fieldName].InverseCompute;
-        if (fieldsToUpdate.Length == 0)
-            return;
-        
     }
 }

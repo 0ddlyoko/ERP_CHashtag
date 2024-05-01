@@ -238,6 +238,11 @@ public class PluginManager(string pluginPath)
                 }
             }
         }
+        // Post loading
+        foreach (var (_, model) in _models)
+        {
+            model.PostLoading();
+        }
     }
 
     private void LoadCommands()

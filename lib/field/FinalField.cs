@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using lib.field.attributes;
 using lib.model;
 
 namespace lib.field;
@@ -15,11 +16,8 @@ public class FinalField
     public readonly List<PluginField> AllOccurences = [];
     public string Name;
     public string Description;
-    public PluginModel? DefaultValuePluginModel;
-    public bool IsDefaultValueAMethod;
-    public object? DefaultValue;
-    public string[] Compute;
-    public string[] InverseCompute;
+    public ComputedValue? DefaultComputedMethod;
+    public List<FinalField> InverseCompute = [];
 
     public FinalField(PluginField firstOccurence)
     {
@@ -30,13 +28,7 @@ public class FinalField
         AllOccurences.Add(firstOccurence);
         Name = firstOccurence.Name ?? FieldName;
         Description = firstOccurence.Description ?? Name;
-        if (firstOccurence.HasDefaultValue)
-        {
-            DefaultValuePluginModel = firstOccurence.PluginModel;
-            IsDefaultValueAMethod = firstOccurence.IsDefaultValueAMethod;
-            DefaultValue = firstOccurence.DefaultValue;
-        }
-        Compute = firstOccurence.Compute;
+        DefaultComputedMethod = firstOccurence.DefaultComputedMethod;
     }
 
     public void MergeWith(PluginField pluginField)
@@ -52,29 +44,28 @@ public class FinalField
             Name = pluginField.Name;
         if (pluginField.Description != null)
             Description = pluginField.Description;
-        if (pluginField.HasDefaultValue)
-        {
-            DefaultValuePluginModel = pluginField.PluginModel;
-            IsDefaultValueAMethod = pluginField.IsDefaultValueAMethod;
-            DefaultValue = pluginField.DefaultValue;
-        }
-        Compute = pluginField.Compute;
+        if (pluginField.DefaultComputedMethod != null)
+            DefaultComputedMethod = pluginField.DefaultComputedMethod;
         LastOccurence = pluginField;
     }
 
     public object? GetDefaultValue()
     {
-        if (DefaultValue == null)
+        if (DefaultComputedMethod?.DefaultValueAttribute == null)
             return null;
-        if (!IsDefaultValueAMethod)
-            return DefaultValue;
-        if (DefaultValuePluginModel == null)
+        // Target is a fixed value
+        if (!DefaultComputedMethod.DefaultValueAttribute.IsMethod)
+            return DefaultComputedMethod.DefaultValue;
+        // Target is a computed field
+        if (DefaultComputedMethod.ComputedAttribute != null)
             return null;
-        if (DefaultValue is not string defaultValue)
-            throw new InvalidOperationException($"Default value ({DefaultValue}) should be a string!");
-        MethodInfo? methodInfo = DefaultValuePluginModel.Type.GetMethod(defaultValue);
-        if (methodInfo == null)
-            throw new InvalidOperationException($"Default method not found: {DefaultValue}");
-        return methodInfo.Invoke(null, null);
+        // Target is not static
+        if (!DefaultComputedMethod.IsComputedStatic)
+            return null;
+        // Target method does not exist
+        if (DefaultComputedMethod.MethodInfo == null)
+            throw new InvalidOperationException($"Computed method {DefaultComputedMethod.DefaultValue} does not exist for field {DefaultComputedMethod.FieldName}");
+        // Computed values are called later
+        return DefaultComputedMethod.MethodInfo.Invoke(null, null);
     }
 }
