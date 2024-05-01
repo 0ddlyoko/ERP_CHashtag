@@ -11,6 +11,8 @@ public interface IPlugin
     
     string[] Dependencies => [];
 
+    List<Type> GetModels();
+
     void OnStart(Environment env) {}
     void OnStop(Environment env) {}
 }

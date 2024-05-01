@@ -34,8 +34,11 @@ public class APlugin
 
         // Load models
         Models = new Dictionary<string, List<PluginModel>>();
-        foreach (var modelType in GetOfType<Model>(assembly))
+        List<Type> models = Plugin.GetModels();
+        foreach (var modelType in models)
         {
+            if (!typeof(Model).IsAssignableFrom(modelType))
+                throw new InvalidOperationException($"Given class {modelType.Name} is not a Model!");
             var modelDefinition = modelType.GetCustomAttribute<ModelDefinitionAttribute>();
             if (modelDefinition == null)
                 throw new InvalidOperationException($"Model class {modelType} does not have attribute ModelDefinitionAttribute");

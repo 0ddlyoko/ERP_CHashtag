@@ -10,6 +10,13 @@ public class MainPlugin: IPlugin
     public string Name => "Main";
     public string Version => "1.0.0";
 
+    public List<Type> GetModels()
+    {
+        return [
+            typeof(Partner),
+        ];
+    }
+
     public void OnStart(Environment env)
     {
         Partner partner1 = env.Create<Partner>();
@@ -29,6 +36,5 @@ public class MainPlugin: IPlugin
         });
         Console.WriteLine($"Name: {partner1.Name}");
         Console.WriteLine($"DisplayName (1ddlyoko): {partner1.DisplayName}");
-        
     }
 }
