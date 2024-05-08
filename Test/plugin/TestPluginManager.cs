@@ -1,4 +1,5 @@
 using System.Reflection;
+using lib.field;
 using lib.model;
 using lib.plugin;
 
@@ -30,7 +31,7 @@ public class TestPluginManager
         Assert.That(_aPlugin.Name, Is.EqualTo(_plugin.Name));
         Assert.That(_aPlugin.Version, Is.EqualTo(_plugin.Version));
         Assert.That(_aPlugin.Dependencies, Is.Empty);
-        Assert.That(_aPlugin.Models.Count, Is.EqualTo(1));
+        Assert.That(_aPlugin.Models, Has.Count.EqualTo(1));
         Assert.That(_aPlugin.IsInstalled, Is.False);
         Assert.That(_aPlugin.State, Is.EqualTo(APlugin.PluginState.NotInstalled));
         Assert.That(_plugin.NumberOfOnStart, Is.EqualTo(0));
@@ -192,9 +193,89 @@ public class TestPluginManager
         Assert.That(pluginModels[2].Fields["Test"].DefaultComputedMethod.MethodInfo, Is.Null);
         Assert.That(pluginModels[2].Fields["Test"].DefaultComputedMethod.IsComputedStatic, Is.False);
         Assert.That(pluginModels[2].Fields["Test"].DefaultComputedMethod.IsPresent, Is.True);
+    }
 
-        
+    [Test]
+    public void TestModelMerges()
+    {
         // Install plugin
         _pluginManager.InstallPlugin(_aPlugin);
+        
+        Assert.That(_pluginManager.ModelsSize, Is.EqualTo(1));
+        Assert.That(_pluginManager.TotalModelsSize, Is.EqualTo(3));
+        Assert.That(_pluginManager.ModelsSize, Is.EqualTo(1));
+        Assert.That(_pluginManager.TotalModelsSize, Is.EqualTo(3));
+
+        FinalModel model = _pluginManager.GetFinalModel("test_partner");
+        Assert.That(model, Is.EqualTo(_pluginManager.Models.First()));
+        Assert.That(model.Name, Is.EqualTo("test_partner"));
+        Assert.That(model.FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0]));
+        Assert.That(model.Description, Is.EqualTo("Contact :D"));
+        Assert.That(model.AllOccurences, Has.Count.EqualTo(3));
+        Assert.That(model.Fields, Has.Count.EqualTo(5));
+
+        List<FinalField> finalFields = model.Fields.Values.ToList();
+        Assert.That(finalFields[0].FieldName, Is.EqualTo("Name"));
+        Assert.That(finalFields[0].FieldType, Is.EqualTo(FieldType.String));
+        Assert.That(finalFields[0].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["Name"]));
+        Assert.That(finalFields[0].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][1].Fields["Name"]));
+        Assert.That(finalFields[0].AllOccurences, Has.Count.EqualTo(2));
+        Assert.That(finalFields[0].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][0].Fields["Name"], _aPlugin.Models["test_partner"][1].Fields["Name"] }));
+        Assert.That(finalFields[0].Name, Is.EqualTo("Name"));
+        Assert.That(finalFields[0].Description, Is.EqualTo("Not the name of the partner"));
+        Assert.That(finalFields[0].DefaultComputedMethod, Is.Not.Null);
+        Assert.That(finalFields[0].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][1].Fields["Name"].DefaultComputedMethod));
+        Assert.That(finalFields[0].InverseCompute, Has.Count.EqualTo(1));
+        Assert.That(finalFields[0].InverseCompute[0], Is.EqualTo(finalFields[3]));
+
+        Assert.That(finalFields[1].FieldName, Is.EqualTo("Age"));
+        Assert.That(finalFields[1].FieldType, Is.EqualTo(FieldType.Integer));
+        Assert.That(finalFields[1].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["Age"]));
+        Assert.That(finalFields[1].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][2].Fields["Age"]));
+        Assert.That(finalFields[1].AllOccurences, Has.Count.EqualTo(2));
+        Assert.That(finalFields[1].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][0].Fields["Age"], _aPlugin.Models["test_partner"][2].Fields["Age"] }));
+        Assert.That(finalFields[1].Name, Is.EqualTo("Not his Age"));
+        Assert.That(finalFields[1].Description, Is.EqualTo("Age of him"));
+        Assert.That(finalFields[1].DefaultComputedMethod, Is.Not.Null);
+        Assert.That(finalFields[1].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][2].Fields["Age"].DefaultComputedMethod));
+        Assert.That(finalFields[1].InverseCompute, Has.Count.EqualTo(1));
+        Assert.That(finalFields[1].InverseCompute[0], Is.EqualTo(finalFields[3]));
+        
+        Assert.That(finalFields[2].FieldName, Is.EqualTo("Color"));
+        Assert.That(finalFields[2].FieldType, Is.EqualTo(FieldType.Integer));
+        Assert.That(finalFields[2].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["Color"]));
+        Assert.That(finalFields[2].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["Color"]));
+        Assert.That(finalFields[2].AllOccurences, Has.Count.EqualTo(1));
+        Assert.That(finalFields[2].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][0].Fields["Color"] }));
+        Assert.That(finalFields[2].Name, Is.EqualTo("Color"));
+        Assert.That(finalFields[2].Description, Is.EqualTo("Color"));
+        Assert.That(finalFields[2].DefaultComputedMethod, Is.Not.Null);
+        Assert.That(finalFields[2].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["Color"].DefaultComputedMethod));
+        Assert.That(finalFields[2].InverseCompute, Is.Empty);
+        
+        Assert.That(finalFields[3].FieldName, Is.EqualTo("DisplayName"));
+        Assert.That(finalFields[3].FieldType, Is.EqualTo(FieldType.String));
+        Assert.That(finalFields[3].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["DisplayName"]));
+        Assert.That(finalFields[3].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["DisplayName"]));
+        Assert.That(finalFields[3].AllOccurences, Has.Count.EqualTo(1));
+        Assert.That(finalFields[3].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][0].Fields["DisplayName"] }));
+        Assert.That(finalFields[3].Name, Is.EqualTo("DisplayName"));
+        Assert.That(finalFields[3].Description, Is.EqualTo("Name to display of the partner"));
+        Assert.That(finalFields[3].DefaultComputedMethod, Is.Not.Null);
+        Assert.That(finalFields[3].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["DisplayName"].DefaultComputedMethod));
+        Assert.That(finalFields[3].InverseCompute, Is.Empty);
+        
+        Assert.That(finalFields[4].FieldName, Is.EqualTo("Test"));
+        Assert.That(finalFields[4].FieldType, Is.EqualTo(FieldType.Integer));
+        Assert.That(finalFields[4].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][1].Fields["Test"]));
+        Assert.That(finalFields[4].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][2].Fields["Test"]));
+        Assert.That(finalFields[4].AllOccurences, Has.Count.EqualTo(2));
+        Assert.That(finalFields[4].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][1].Fields["Test"], _aPlugin.Models["test_partner"][2].Fields["Test"] }));
+        Assert.That(finalFields[4].Name, Is.EqualTo("Test"));
+        Assert.That(finalFields[4].Description, Is.EqualTo("Test"));
+        Assert.That(finalFields[4].DefaultComputedMethod, Is.Not.Null);
+        Assert.That(finalFields[4].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][2].Fields["Test"].DefaultComputedMethod));
+        Assert.That(finalFields[4].InverseCompute, Is.Empty);
+        
     }
 }
