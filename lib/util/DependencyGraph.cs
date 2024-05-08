@@ -5,6 +5,7 @@ public static class DependencyGraph
     /**
      * Transform given dependencies nodes into a single list containing the node without dependencies at first, and
      * node with the most dependencies at last.
+     * If a dependency is not in the list, it will be added.
      */
     public static List<string> GetOrderedGraph(IReadOnlyDictionary<string, string[]> dependencies)
     {
@@ -24,12 +25,12 @@ public static class DependencyGraph
     {
         if (!marked.TryGetValue(currentNode, out bool value))
         {
-            // Key is not present in the list. Ignore it
-            result.Insert(0, currentNode);
+            // Key is not present in the list, but we still add it to the result
+            result.Add(currentNode);
             return;
         }
         if (value)
-            throw new InvalidOperationException("Recursive node !");
+            throw new CircularDependencyException($"Circular dependency detected involving node: {currentNode}");
 
         if (result.Contains(currentNode))
             return;
@@ -44,6 +45,13 @@ public static class DependencyGraph
         }
 
         marked[currentNode] = false;
-        result.Insert(0, currentNode);
+        result.Add(currentNode);
+    }
+    
+    public class CircularDependencyException : Exception
+    {
+        public CircularDependencyException() { }
+        public CircularDependencyException(string message) : base(message) { }
+        public CircularDependencyException(string message, Exception inner) : base(message, inner) { }
     }
 }

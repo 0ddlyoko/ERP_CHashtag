@@ -65,7 +65,7 @@ public class PluginManager(string pluginPath)
         }
     }
 
-    private void RegisterPlugin(string pluginLocation)
+    public void RegisterPlugin(string pluginLocation)
     {
         // Check if it's a symlink
         var fileInfo = new FileInfo(pluginLocation);
@@ -73,6 +73,11 @@ public class PluginManager(string pluginPath)
             pluginLocation = fileInfo.LinkTarget;
         var loadContext = new PluginLoadContext(pluginLocation);
         Assembly assembly = loadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginLocation)));
+        RegisterPlugin(assembly);
+    }
+
+    public void RegisterPlugin(Assembly assembly)
+    {
         var plugin = new APlugin(assembly);
         _availablePlugins[plugin.Id] = plugin;
     }
@@ -98,7 +103,7 @@ public class PluginManager(string pluginPath)
         return plugin;
     }
 
-    public bool IsPluginInstalled(string pluginName) => _availablePlugins.ContainsKey(pluginName.ToLower());
+    public bool IsPluginInstalled(string pluginName) => _plugins.ContainsKey(pluginName.ToLower());
 
     /**
      * Install given plugin and all his dependencies
@@ -167,6 +172,8 @@ public class PluginManager(string pluginPath)
      */
     public void SetPluginToInstall(APlugin plugin)
     {
+        if (plugin.State != APlugin.PluginState.NotInstalled)
+            return;
         plugin.State = APlugin.PluginState.ToInstall;
         foreach (string dependency in plugin.Dependencies)
         {

@@ -24,6 +24,7 @@ public class APlugin
 
         // Load commands
         Commands = [];
+        // TODO Get list of commands from a method like GetModels()
         foreach (var commandType in GetOfType<ICommand>(assembly))
         {
             var command = (ICommand?)Activator.CreateInstance(commandType);
