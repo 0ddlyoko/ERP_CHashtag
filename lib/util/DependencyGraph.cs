@@ -48,10 +48,5 @@ public static class DependencyGraph
         result.Add(currentNode);
     }
     
-    public class CircularDependencyException : Exception
-    {
-        public CircularDependencyException() { }
-        public CircularDependencyException(string message) : base(message) { }
-        public CircularDependencyException(string message, Exception inner) : base(message, inner) { }
-    }
+    public class CircularDependencyException(string message) : Exception(message);
 }

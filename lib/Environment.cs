@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using lib.field;
 using lib.model;
 using lib.plugin;
 
@@ -9,7 +8,7 @@ public class Environment
 {
     public readonly PluginManager PluginManager;
     private readonly Dictionary<string, Dictionary<int, CachedModel>> _cachedModels = new();
-    private static int _id = 1;
+    private int _id = 1;
 
     public Environment(PluginManager pluginManager)
     {
