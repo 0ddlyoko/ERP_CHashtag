@@ -36,5 +36,6 @@ public class MainPlugin: IPlugin
         });
         Console.WriteLine($"Name: {partner1.Name}");
         Console.WriteLine($"DisplayName (1ddlyoko): {partner1.DisplayName}");
+        Console.WriteLine($"Date (1ddlyoko): {partner1.Date}");
     }
 }

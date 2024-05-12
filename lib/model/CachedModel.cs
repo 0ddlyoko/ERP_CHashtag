@@ -10,7 +10,7 @@ namespace lib.model;
 public class CachedModel
 {
     public Environment Env;
-    public int Id = 0;
+    public int Id;
     public FinalModel Model;
     public bool Dirty = false;
     // TODO Add a way to know which value have changed
@@ -27,6 +27,7 @@ public class CachedModel
             return;
         var type = model.GetType();
         List<string> fieldsUpdated = [];
+        bool hasBeenUpdated = false;
         foreach ((string fieldName, _) in pluginModel.Fields)
         {
             var fieldInfo = type.GetField(fieldName);
@@ -39,6 +40,16 @@ public class CachedModel
             // Another check, as sometimes you have 2 same values but from different class instance
             if (existingValue != null && existingValue.Equals(newValue))
                 continue;
+            // If a field has been updated, we also need to update the UpdateDate field
+            if (!hasBeenUpdated)
+            {
+                // Record has been modified, update the "UpdateDate" field
+                UpdateCacheFromData(model, new Dictionary<string, object?>()
+                {
+                    {"UpdateDate", DateTimeProvider.Now},
+                }, updateDirty);
+                hasBeenUpdated = true;
+            }
             ModifyField(fieldName, newValue, model);
             if (updateDirty)
                 Dirty = true;
@@ -64,6 +75,7 @@ public class CachedModel
     {
         var type = model.GetType();
         List<string> fieldsUpdated = [];
+        bool hasBeenUpdated = false;
         foreach ((string fieldName, object? newValue) in data)
         {
             var fieldInfo = type.GetField(fieldName);
@@ -72,6 +84,16 @@ public class CachedModel
             Data.TryGetValue(fieldName, out object? existingValue);
             if (existingValue == newValue)
                 continue;
+            // If a field has been updated, we also need to update the UpdateDate field
+            if (!hasBeenUpdated && fieldName != "UpdateDate")
+            {
+                // Record has been modified, update the "UpdateDate" field
+                UpdateCacheFromData(model, new Dictionary<string, object?>()
+                {
+                    {"UpdateDate", DateTimeProvider.Now},
+                }, updateDirty);
+                hasBeenUpdated = true;
+            }
             ModifyField(fieldName, newValue, model, skipOriginalModel: false);
             if (updateDirty)
                 Dirty = true;

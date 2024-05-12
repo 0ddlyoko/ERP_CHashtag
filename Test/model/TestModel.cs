@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using lib;
 using lib.plugin;
 using Test.data.models;
 using Environment = lib.Environment;
@@ -155,5 +156,37 @@ public class TestModel
             {"Age", 54},
         });
         Assert.That(partner.DisplayName, Is.EqualTo("Name: 1ddlyoko, Age: 54"), "Modifying a field from a child model should recompute the method");
+    }
+
+    [Test]
+    public void TestUpdateDate()
+    {
+        _pluginManager.InstallPlugin(_aPlugin);
+        
+        DateTime fakeTime = new DateTime(1998, 7, 21);
+        TestPartner partner;
+        using (new DateTimeProvider.DateTimeProviderContext(fakeTime))
+        {
+            partner = _env.Create<TestPartner>();
+            Assert.That(partner.CreationDate, Is.EqualTo(fakeTime));
+            Assert.That(partner.UpdateDate, Is.EqualTo(fakeTime));
+        }
+
+        TestPartner2 partner2 = partner.Transform<TestPartner2>();
+        DateTime fakeTime2 = new DateTime(1998, 7, 22);
+        using (new DateTimeProvider.DateTimeProviderContext(fakeTime2))
+        {
+            partner.Name = "0ddlyoko";
+            Assert.That(partner.CreationDate, Is.EqualTo(fakeTime), "Creation date shouldn't change at all");
+            Assert.That(partner.UpdateDate, Is.EqualTo(fakeTime), "Update date shouldn't change as the record isn't saved");
+            Assert.That(partner2.CreationDate, Is.EqualTo(fakeTime), "Creation date shouldn't change at all");
+            Assert.That(partner2.UpdateDate, Is.EqualTo(fakeTime), "Update date shouldn't change as the record isn't saved");
+            
+            partner.Save();
+            Assert.That(partner.CreationDate, Is.EqualTo(fakeTime), "Creation date shouldn't change at all");
+            Assert.That(partner.UpdateDate, Is.EqualTo(fakeTime2), "Update date should have changed");
+            Assert.That(partner2.CreationDate, Is.EqualTo(fakeTime), "Creation date shouldn't change at all");
+            Assert.That(partner2.UpdateDate, Is.EqualTo(fakeTime2), "Update date should have changed");
+        }
     }
 }

@@ -9,7 +9,12 @@ public class Model
 {
     [FieldDefinition(Name = "Id", Description = "Id of the record")]
     public required int Id;
-    // TODO Add creation date & update date
+
+    [FieldDefinition(Name = "CreationDate", Description = "Date of when the record has been created")]
+    public required DateTime CreationDate;
+
+    [FieldDefinition(Name = "UpdateDate", Description = "Date of when the record has been updated for the last time")]
+    public required DateTime UpdateDate;
 
     public required Environment Env;
 

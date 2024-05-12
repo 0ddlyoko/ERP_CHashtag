@@ -1,4 +1,5 @@
-﻿using lib.field.attributes;
+﻿using lib;
+using lib.field.attributes;
 
 namespace main.models;
 
@@ -23,9 +24,15 @@ public class Partner: Model
     [FieldDefinition(Description = "Name to display of the partner")]
     [DefaultValue(nameof(ComputeDisplayName), isMethod: true)]
     public string DisplayName = "";
+
+    [FieldDefinition(Description = "Random Date")]
+    [DefaultValue(nameof(DefaultDateTime), isMethod: true)]
+    public DateTime Date;
     
     // Default method
     public static int DefaultRandomColor() => 42;
+
+    public static DateTime DefaultDateTime() => DateTimeProvider.Now;
 
     // Compute method
     [Computed(["Name", "Age"])]

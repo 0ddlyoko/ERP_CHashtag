@@ -6,4 +6,6 @@ public enum FieldType
     Integer,
     Float,
     Boolean,
+    Date,
+    Datetime,
 }

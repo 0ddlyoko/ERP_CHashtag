@@ -92,7 +92,11 @@ public class Environment
             else
                 defaultValues[key] = value;
         }
-        CachedModel cachedModel = new CachedModel
+
+        var dateTime = DateTimeProvider.Now;
+        defaultValues["CreationDate"] = dateTime;
+        defaultValues["UpdateDate"] = dateTime;
+        var cachedModel = new CachedModel
         {
             Env = this,
             Id = id,

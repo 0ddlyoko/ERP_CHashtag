@@ -39,6 +39,7 @@ public class PluginField
             TypeCode.Int32 => FieldType.Integer,
             TypeCode.Decimal => FieldType.Float,
             TypeCode.Boolean => FieldType.Boolean,
+            TypeCode.DateTime => FieldType.Datetime,
             _ => throw new InvalidEnumArgumentException($"Argument type {fieldInfo.FieldType} is invalid!")
         };
     }
