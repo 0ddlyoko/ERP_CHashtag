@@ -189,4 +189,37 @@ public class TestModel
             Assert.That(partner2.UpdateDate, Is.EqualTo(fakeTime2), "Update date should have changed");
         }
     }
+
+    [Test]
+    public void TestDate()
+    {
+        _pluginManager.InstallPlugin(_aPlugin);
+        DateTime fakeTime = new DateTime(1998, 7, 21, 12, 0, 0);
+        DateTime fakeTime2 = new DateTime(1998, 7, 21, 13, 0, 0);
+        DateTime fakeDate = fakeTime.Date;
+        TestPartner partner;
+        using (new DateTimeProvider.DateTimeProviderContext(fakeTime))
+        {
+            partner = _env.Create<TestPartner>();
+            Assert.That(partner.MyDate, Is.EqualTo(fakeDate), "Date field should always be a date");
+
+            partner.Update(new Dictionary<string, object?>
+            {
+                {"MyDate", fakeTime},
+                {"MyDateTime", fakeTime},
+            });
+            
+            Assert.That(partner.MyDate, Is.EqualTo(fakeDate), "Saving should update the datetime into a date");
+            Assert.That(partner.MyDateTime, Is.EqualTo(fakeTime), "This datetime shouldn't change as it's not a date");
+
+            partner.Update(new Dictionary<string, object?>
+            {
+                {"MyDate", fakeTime2},
+                {"MyDateTime", fakeTime2},
+            });
+            
+            Assert.That(partner.MyDate, Is.EqualTo(fakeDate), "Saving should update the datetime into a date");
+            Assert.That(partner.MyDateTime, Is.EqualTo(fakeTime2), "This datetime shouldn't change as it's not a date");
+        }
+    }
 }

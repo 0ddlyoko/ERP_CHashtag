@@ -25,7 +25,7 @@ public class DateTimeProvider
         {
             get
             {
-                if (_threadScopeStack!.Value!.Count == 0)
+                if ((_threadScopeStack?.Value?.Count ?? 0) == 0)
                     return null;
                 return _threadScopeStack!.Value!.Peek();
             }

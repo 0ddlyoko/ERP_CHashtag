@@ -79,7 +79,7 @@ public class TestPluginManager
         Assert.That(pluginModels[0].Plugin, Is.EqualTo(_aPlugin));
         Assert.That(pluginModels[0].Name, Is.EqualTo("test_partner"));
         Assert.That(pluginModels[0].Description, Is.EqualTo("Contact"));
-        Assert.That(pluginModels[0].Fields, Has.Count.EqualTo(4));
+        Assert.That(pluginModels[0].Fields, Has.Count.EqualTo(8));
         
         // Fields
         Assert.That(pluginModels[0].Fields, Contains.Key("Name"));
@@ -133,12 +133,32 @@ public class TestPluginManager
         Assert.That(pluginModels[0].Fields["DisplayName"].DefaultComputedMethod.MethodInfo, Is.Not.Null);
         Assert.That(pluginModels[0].Fields["DisplayName"].DefaultComputedMethod.IsComputedStatic, Is.False);
         Assert.That(pluginModels[0].Fields["DisplayName"].DefaultComputedMethod.IsPresent, Is.True);
+        
+        Assert.That(pluginModels[0].Fields, Contains.Key("MyDate"));
+        Assert.That(pluginModels[0].Fields["MyDate"].Plugin, Is.EqualTo(_aPlugin));
+        Assert.That(pluginModels[0].Fields["MyDate"].FieldName, Is.EqualTo("MyDate"));
+        Assert.That(pluginModels[0].Fields["MyDate"].Name, Is.EqualTo("MyDate"));
+        Assert.That(pluginModels[0].Fields["MyDate"].Description, Is.EqualTo("My Date"));
+        Assert.That(pluginModels[0].Fields["MyDate"].DefaultComputedMethod, Is.Not.Null);
+        Assert.That(pluginModels[0].Fields["MyDate"].DefaultComputedMethod.FieldName, Is.EqualTo("MyDate"));
+        Assert.That(pluginModels[0].Fields["MyDate"].DefaultComputedMethod.DefaultValue, Is.EqualTo("DefaultMyDate"));
+        Assert.That(pluginModels[0].Fields["MyDate"].DefaultComputedMethod.ComputedAttribute, Is.Null);
+        Assert.That(pluginModels[0].Fields["MyDate"].DefaultComputedMethod.MethodInfo, Is.Not.Null);
+        Assert.That(pluginModels[0].Fields["MyDate"].DefaultComputedMethod.IsComputedStatic, Is.True);
+        Assert.That(pluginModels[0].Fields["MyDate"].DefaultComputedMethod.IsPresent, Is.True);
+        
+        Assert.That(pluginModels[0].Fields, Contains.Key("MyDate"));
+        Assert.That(pluginModels[0].Fields["MyDateTime"].Plugin, Is.EqualTo(_aPlugin));
+        Assert.That(pluginModels[0].Fields["MyDateTime"].FieldName, Is.EqualTo("MyDateTime"));
+        Assert.That(pluginModels[0].Fields["MyDateTime"].Name, Is.EqualTo("MyTime"));
+        Assert.That(pluginModels[0].Fields["MyDateTime"].Description, Is.EqualTo("My Date Time"));
+        Assert.That(pluginModels[0].Fields["MyDateTime"].DefaultComputedMethod, Is.Null);
 
         // Second model
         Assert.That(pluginModels[1].Plugin, Is.EqualTo(_aPlugin));
         Assert.That(pluginModels[1].Name, Is.EqualTo("test_partner"));
         Assert.That(pluginModels[1].Description, Is.EqualTo("Contact :D"));
-        Assert.That(pluginModels[1].Fields, Has.Count.EqualTo(2));
+        Assert.That(pluginModels[1].Fields, Has.Count.EqualTo(4));
         
         // Fields
         Assert.That(pluginModels[1].Fields, Contains.Key("Name"));
@@ -165,7 +185,7 @@ public class TestPluginManager
         Assert.That(pluginModels[2].Plugin, Is.EqualTo(_aPlugin));
         Assert.That(pluginModels[2].Name, Is.EqualTo("test_partner"));
         Assert.That(pluginModels[2].Description, Is.Null);
-        Assert.That(pluginModels[2].Fields, Has.Count.EqualTo(2));
+        Assert.That(pluginModels[2].Fields, Has.Count.EqualTo(4));
         
         // Fields
         Assert.That(pluginModels[2].Fields, Contains.Key("Age"));
@@ -212,7 +232,7 @@ public class TestPluginManager
         Assert.That(model.FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0]));
         Assert.That(model.Description, Is.EqualTo("Contact :D"));
         Assert.That(model.AllOccurences, Has.Count.EqualTo(3));
-        Assert.That(model.Fields, Has.Count.EqualTo(5));
+        Assert.That(model.Fields, Has.Count.EqualTo(9));
 
         List<FinalField> finalFields = model.Fields.Values.ToList();
         Assert.That(finalFields[0].FieldName, Is.EqualTo("Name"));
@@ -265,17 +285,40 @@ public class TestPluginManager
         Assert.That(finalFields[3].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["DisplayName"].DefaultComputedMethod));
         Assert.That(finalFields[3].InverseCompute, Is.Empty);
         
-        Assert.That(finalFields[4].FieldName, Is.EqualTo("Test"));
-        Assert.That(finalFields[4].FieldType, Is.EqualTo(FieldType.Integer));
-        Assert.That(finalFields[4].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][1].Fields["Test"]));
-        Assert.That(finalFields[4].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][2].Fields["Test"]));
-        Assert.That(finalFields[4].AllOccurences, Has.Count.EqualTo(2));
-        Assert.That(finalFields[4].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][1].Fields["Test"], _aPlugin.Models["test_partner"][2].Fields["Test"] }));
-        Assert.That(finalFields[4].Name, Is.EqualTo("Test"));
-        Assert.That(finalFields[4].Description, Is.EqualTo("Test"));
-        Assert.That(finalFields[4].DefaultComputedMethod, Is.Not.Null);
-        Assert.That(finalFields[4].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][2].Fields["Test"].DefaultComputedMethod));
+        Assert.That(finalFields[4].FieldName, Is.EqualTo("MyDate"));
+        Assert.That(finalFields[4].FieldType, Is.EqualTo(FieldType.Date));
+        Assert.That(finalFields[4].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["MyDate"]));
+        Assert.That(finalFields[4].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["MyDate"]));
+        Assert.That(finalFields[4].AllOccurences, Has.Count.EqualTo(1));
+        Assert.That(finalFields[4].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][0].Fields["MyDate"] }));
+        Assert.That(finalFields[4].Name, Is.EqualTo("MyDate"));
+        Assert.That(finalFields[4].Description, Is.EqualTo("My Date"));
+        Assert.That(finalFields[4].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["MyDate"].DefaultComputedMethod));
         Assert.That(finalFields[4].InverseCompute, Is.Empty);
+        
+        Assert.That(finalFields[5].FieldName, Is.EqualTo("MyDateTime"));
+        Assert.That(finalFields[5].FieldType, Is.EqualTo(FieldType.Datetime));
+        Assert.That(finalFields[5].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["MyDateTime"]));
+        Assert.That(finalFields[5].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["MyDateTime"]));
+        Assert.That(finalFields[5].AllOccurences, Has.Count.EqualTo(1));
+        Assert.That(finalFields[5].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][0].Fields["MyDateTime"] }));
+        Assert.That(finalFields[5].Name, Is.EqualTo("MyTime"));
+        Assert.That(finalFields[5].Description, Is.EqualTo("My Date Time"));
+        Assert.That(finalFields[5].DefaultComputedMethod, Is.Null);
+        Assert.That(finalFields[5].InverseCompute, Is.Empty);
+        
+        // 6 & 7 are CreationDate & UpdateDate
+        Assert.That(finalFields[8].FieldName, Is.EqualTo("Test"));
+        Assert.That(finalFields[8].FieldType, Is.EqualTo(FieldType.Integer));
+        Assert.That(finalFields[8].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][1].Fields["Test"]));
+        Assert.That(finalFields[8].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][2].Fields["Test"]));
+        Assert.That(finalFields[8].AllOccurences, Has.Count.EqualTo(2));
+        Assert.That(finalFields[8].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][1].Fields["Test"], _aPlugin.Models["test_partner"][2].Fields["Test"] }));
+        Assert.That(finalFields[8].Name, Is.EqualTo("Test"));
+        Assert.That(finalFields[8].Description, Is.EqualTo("Test"));
+        Assert.That(finalFields[8].DefaultComputedMethod, Is.Not.Null);
+        Assert.That(finalFields[8].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][2].Fields["Test"].DefaultComputedMethod));
+        Assert.That(finalFields[8].InverseCompute, Is.Empty);
         
     }
 }

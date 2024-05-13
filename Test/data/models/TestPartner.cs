@@ -1,4 +1,5 @@
-﻿using lib.field.attributes;
+﻿using lib;
+using lib.field.attributes;
 
 namespace Test.data.models;
 
@@ -11,7 +12,7 @@ public class TestPartner: Model
     [DefaultValue("Test")]
     public string Name = "";
 
-    [FieldDefinition(Name="Age 2", Description = "Age of the partner")]
+    [FieldDefinition(Name = "Age 2", Description = "Age of the partner")]
     [DefaultValue(42)]
     public int Age = 0;
 
@@ -23,9 +24,19 @@ public class TestPartner: Model
     [FieldDefinition(Description = "Name to display of the partner")]
     [DefaultValue(nameof(ComputeDisplayName), isMethod: true)]
     public string DisplayName = "";
+
+    [FieldDefinition(Name = "MyDate", Description = "My Date")]
+    [DateOnly]
+    [DefaultValue(nameof(DefaultMyDate), isMethod: true)]
+    public DateTime MyDate;
+
+    [FieldDefinition(Name = "MyTime", Description = "My Date Time")]
+    public DateTime MyDateTime;
     
     // Default method
     public static int DefaultRandomColor() => 42;
+
+    public static DateTime DefaultMyDate() => DateTimeProvider.Now;
 
     // Compute method
     [Computed(["Name", "Age"])]

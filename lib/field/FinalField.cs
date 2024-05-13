@@ -64,6 +64,11 @@ public class FinalField
         if (DefaultComputedMethod.MethodInfo == null)
             throw new InvalidOperationException($"Computed method {DefaultComputedMethod.DefaultValue} does not exist for field {DefaultComputedMethod.FieldName}");
         // Computed values are called later
-        return DefaultComputedMethod.MethodInfo.Invoke(null, null);
+        var defaultValue = DefaultComputedMethod.MethodInfo.Invoke(null, null);
+        if (FieldType == FieldType.Date && defaultValue != null && defaultValue?.GetType() == typeof(DateTime))
+        {
+            defaultValue = ((DateTime)defaultValue).Date;
+        }
+        return defaultValue;
     }
 }

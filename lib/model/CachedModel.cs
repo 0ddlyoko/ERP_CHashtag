@@ -59,6 +59,9 @@ public class CachedModel
         HashSet<string> fieldsToCompute = [];
         foreach (var fieldUpdated in fieldsUpdated)
         {
+            // Do not allow computing on those fields
+            if (fieldUpdated is "Id" or "CreationDate" or "UpdateDate")
+                continue;
             foreach (var fieldName in Model.Fields[fieldUpdated].InverseCompute.Select(finalField => finalField.Name))
             {
                 fieldsToCompute.Add(fieldName);
@@ -103,6 +106,9 @@ public class CachedModel
         HashSet<string> fieldsToCompute = [];
         foreach (var fieldUpdated in fieldsUpdated)
         {
+            // Do not allow computing on those fields
+            if (fieldUpdated is "Id" or "CreationDate" or "UpdateDate")
+                continue;
             foreach (var fieldName in Model.Fields[fieldUpdated].InverseCompute.Select(finalField => finalField.Name))
             {
                 fieldsToCompute.Add(fieldName);
@@ -117,7 +123,11 @@ public class CachedModel
         if (newValue == null)
             Data.Remove(fieldName);
         else
+        {
+            if (Model.Fields[fieldName].FieldType == FieldType.Date)
+                newValue = ((DateTime)newValue).Date;
             Data[fieldName] = newValue;
+        }
         foreach (var (model, _) in CreatedModels.Where(model => model.Value.Fields.ContainsKey(fieldName) && (!skipOriginalModel || model.Key != originalModel)))
         {
             var type = model.GetType();

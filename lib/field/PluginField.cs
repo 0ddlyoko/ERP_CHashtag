@@ -31,7 +31,6 @@ public class PluginField
         var defaultComputedMethod = new ComputedValue(FieldName, fieldInfo, classType);
         if (defaultComputedMethod.DefaultValueAttribute != null)
             DefaultComputedMethod = defaultComputedMethod;
-        
         // Field type
         FieldType = Type.GetTypeCode(fieldInfo.FieldType) switch
         {
@@ -42,5 +41,15 @@ public class PluginField
             TypeCode.DateTime => FieldType.Datetime,
             _ => throw new InvalidEnumArgumentException($"Argument type {fieldInfo.FieldType} is invalid!")
         };
+        // Date / Datetime
+        if (FieldType != FieldType.Datetime)
+            return;
+        var dateOnlyAttribute = fieldInfo.GetCustomAttribute<DateOnlyAttribute>();
+        if (dateOnlyAttribute == null)
+            return;
+        if (dateOnlyAttribute.DateOnly)
+        {
+            FieldType = FieldType.Date;
+        }
     }
 }
