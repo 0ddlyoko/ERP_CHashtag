@@ -47,26 +47,6 @@ public class TestModel
     }
 
     [Test]
-    public void TestSave()
-    {
-        _pluginManager.InstallPlugin(_aPlugin);
-        
-        TestPartner partner = _env.Create<TestPartner>();
-        TestPartner partner2 = _env.Get<TestPartner>(partner.Id);
-        
-        partner.Name = "test";
-        
-        Assert.That(partner.Name, Is.EqualTo("test"), "Name should be test");
-        Assert.That(partner2.Name, Is.EqualTo("LoL"), "Name hasn't been saved, it should be the default value");
-        partner.Save();
-        Assert.That(partner.Name, Is.EqualTo("test"));
-        Assert.That(partner2.Name, Is.EqualTo("test"));
-        
-        // Save should also work with models extending the basic one
-        Assert.That(partner.Transform<TestPartner2>().Name, Is.EqualTo("test"));
-    }
-
-    [Test]
     public void TestUpdate()
     {
         _pluginManager.InstallPlugin(_aPlugin);
@@ -120,18 +100,6 @@ public class TestModel
         Assert.That(newPartner.Age, Is.EqualTo(100), "Default value should prioritize given values");}
 
     [Test]
-    public void TestReset()
-    {
-        _pluginManager.InstallPlugin(_aPlugin);
-        
-        TestPartner partner = _env.Create<TestPartner>();
-
-        partner.Name = "0ddlyoko";
-        partner.Reset();
-        Assert.That(partner.Name, Is.EqualTo("LoL"), "Calling Reset method should reset the model");
-    }
-
-    [Test]
     public void TestCompute()
     {
         _pluginManager.InstallPlugin(_aPlugin);
@@ -139,16 +107,45 @@ public class TestModel
         TestPartner partner = _env.Create<TestPartner>();
         TestPartner2 partner2 = partner.Transform<TestPartner2>();
         TestPartner3 partner3 = partner.Transform<TestPartner3>();
-        
+        Assert.Multiple(() =>
+        {
+            // DisplayName shouldn't be already computed
+            Assert.That(partner.CachedModel.Fields["DisplayName"].Value, Is.Null);
+            Assert.That(partner.CachedModel.Fields["DisplayName"].ToRecompute, Is.True);
+            Assert.That(partner.CachedModel.Fields["DisplayName"].Dirty, Is.True);
+            Assert.That(partner.CachedModel.Dirty, Is.True);
+        });
+
+        // Now that we access to DisplayName, it should be computed
         Assert.That(partner.DisplayName, Is.EqualTo("Name: LoL, Age: 70"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(partner.CachedModel.Fields["DisplayName"].Value, Is.EqualTo("Name: LoL, Age: 70"));
+            Assert.That(partner.CachedModel.Fields["DisplayName"].ToRecompute, Is.False);
+            Assert.That(partner.CachedModel.Fields["DisplayName"].Dirty, Is.True);
+            Assert.That(partner.CachedModel.Dirty, Is.True);
+        });
+        
         partner.Name = "0ddlyoko";
         partner.Age = 42;
-        Assert.That(partner.DisplayName, Is.EqualTo("Name: LoL, Age: 70"), "Changing name without saving shouldn't recompute the method");
-        partner.Save();
-        Assert.That(partner.DisplayName, Is.EqualTo("Name: 0ddlyoko, Age: 42"), "Saving should recompute the method");
-
+        Assert.Multiple(() =>
+        {
+            // Modifying fields should not trigger the compute, but should set the flag to true
+            Assert.That(partner.CachedModel.Fields["DisplayName"].Value, Is.EqualTo("Name: LoL, Age: 70"));
+            Assert.That(partner.CachedModel.Fields["DisplayName"].ToRecompute, Is.True);
+            Assert.That(partner.CachedModel.Fields["DisplayName"].Dirty, Is.True);
+            Assert.That(partner.CachedModel.Dirty, Is.True);
+        });
+        Assert.Multiple(() =>
+        {
+            // Accessing again to DisplayName should compute it as ToRecompute = true
+            Assert.That(partner.DisplayName, Is.EqualTo("Name: 0ddlyoko, Age: 42"), "We should recompute the method");
+            Assert.That(partner.CachedModel.Fields["DisplayName"].Value, Is.EqualTo("Name: 0ddlyoko, Age: 42"));
+            Assert.That(partner.CachedModel.Fields["DisplayName"].ToRecompute, Is.False);
+            Assert.That(partner.CachedModel.Fields["DisplayName"].Dirty, Is.True);
+            Assert.That(partner.CachedModel.Dirty, Is.True);
+        });
         partner2.Name = "1ddlyoko";
-        partner2.Save();
         Assert.That(partner.DisplayName, Is.EqualTo("Name: 1ddlyoko, Age: 42"), "Modifying a field from a child model should recompute the method");
         
         partner3.Update(new Dictionary<string, object?>
@@ -177,12 +174,6 @@ public class TestModel
         using (new DateTimeProvider.DateTimeProviderContext(fakeTime2))
         {
             partner.Name = "0ddlyoko";
-            Assert.That(partner.CreationDate, Is.EqualTo(fakeTime), "Creation date shouldn't change at all");
-            Assert.That(partner.UpdateDate, Is.EqualTo(fakeTime), "Update date shouldn't change as the record isn't saved");
-            Assert.That(partner2.CreationDate, Is.EqualTo(fakeTime), "Creation date shouldn't change at all");
-            Assert.That(partner2.UpdateDate, Is.EqualTo(fakeTime), "Update date shouldn't change as the record isn't saved");
-            
-            partner.Save();
             Assert.That(partner.CreationDate, Is.EqualTo(fakeTime), "Creation date shouldn't change at all");
             Assert.That(partner.UpdateDate, Is.EqualTo(fakeTime2), "Update date should have changed");
             Assert.That(partner2.CreationDate, Is.EqualTo(fakeTime), "Creation date shouldn't change at all");

@@ -14,18 +14,19 @@ public class ComputedValue
     public readonly ComputedAttribute? ComputedAttribute;
     public readonly MethodInfo? MethodInfo;
     public bool IsComputedStatic => MethodInfo?.IsStatic ?? false;
+    public bool IsComputed => MethodInfo != null && !IsComputedStatic;
     public bool IsPresent => DefaultValueAttribute != null;
 
-    public ComputedValue(string fieldName, FieldInfo fieldInfo, Type classType)
+    public ComputedValue(string fieldName, PropertyInfo propertyInfo, Type classType)
     {
         FieldName = fieldName;
-        DefaultValueAttribute = fieldInfo.GetCustomAttribute<DefaultValueAttribute>();
+        DefaultValueAttribute = propertyInfo.GetCustomAttribute<DefaultValueAttribute>();
         if (DefaultValueAttribute is not { IsMethod: true })
             return;
-        if (DefaultValueAttribute.DefaultValue is not string)
+        if (DefaultValueAttribute.DefaultValue is not string s)
             throw new InvalidOperationException($"Default value {DefaultValueAttribute.DefaultValue} of field {fieldName} should be a string!");
         // Computed field
-        MethodInfo = classType.GetMethod((DefaultValueAttribute.DefaultValue as string)!);
+        MethodInfo = classType.GetMethod(s);
         if (MethodInfo == null)
             throw new InvalidOperationException($"Default method {DefaultValueAttribute.DefaultValue} not found in class!");
         ComputedAttribute = MethodInfo.GetCustomAttribute<ComputedAttribute>();

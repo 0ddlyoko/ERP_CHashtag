@@ -25,7 +25,6 @@ public class MainPlugin: IPlugin
         Console.WriteLine($"DisplayName (Test): {partner1.DisplayName}");
         
         partner1.Name = "0ddlyoko";
-        partner1.Save();
         Console.WriteLine($"Name: {partner1.Name}");
         Console.WriteLine($"DisplayName (0ddlyoko): {partner1.DisplayName}");
         

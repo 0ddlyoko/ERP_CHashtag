@@ -246,7 +246,7 @@ public class TestPluginManager
         Assert.That(finalFields[0].DefaultComputedMethod, Is.Not.Null);
         Assert.That(finalFields[0].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][1].Fields["Name"].DefaultComputedMethod));
         Assert.That(finalFields[0].InverseCompute, Has.Count.EqualTo(1));
-        Assert.That(finalFields[0].InverseCompute[0], Is.EqualTo(finalFields[3]));
+        Assert.That(finalFields[0].InverseCompute[0], Is.EqualTo(finalFields[3].Name));
 
         Assert.That(finalFields[1].FieldName, Is.EqualTo("Age"));
         Assert.That(finalFields[1].FieldType, Is.EqualTo(FieldType.Integer));
@@ -259,7 +259,7 @@ public class TestPluginManager
         Assert.That(finalFields[1].DefaultComputedMethod, Is.Not.Null);
         Assert.That(finalFields[1].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][2].Fields["Age"].DefaultComputedMethod));
         Assert.That(finalFields[1].InverseCompute, Has.Count.EqualTo(1));
-        Assert.That(finalFields[1].InverseCompute[0], Is.EqualTo(finalFields[3]));
+        Assert.That(finalFields[1].InverseCompute[0], Is.EqualTo(finalFields[3].Name));
         
         Assert.That(finalFields[2].FieldName, Is.EqualTo("Color"));
         Assert.That(finalFields[2].FieldType, Is.EqualTo(FieldType.Integer));

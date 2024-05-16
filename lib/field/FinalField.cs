@@ -10,12 +10,14 @@ public class FinalField
     public readonly string FieldName;
     public readonly FieldType FieldType;
     public readonly PluginField FirstOccurence;
+    public PluginField? LastOccurenceOfComputedMethod;
     public PluginField LastOccurence;
     public readonly List<PluginField> AllOccurences = [];
     public string Name;
     public string Description;
     public ComputedValue? DefaultComputedMethod;
-    public List<FinalField> InverseCompute = [];
+    public bool IsComputed => DefaultComputedMethod?.IsComputed ?? false;
+    public readonly List<string> InverseCompute = [];
 
     public FinalField(PluginField firstOccurence)
     {
@@ -27,6 +29,8 @@ public class FinalField
         Name = firstOccurence.Name ?? FieldName;
         Description = firstOccurence.Description ?? Name;
         DefaultComputedMethod = firstOccurence.DefaultComputedMethod;
+        if (DefaultComputedMethod?.MethodInfo != null)
+            LastOccurenceOfComputedMethod = firstOccurence;
     }
 
     public void MergeWith(PluginField pluginField)
@@ -43,7 +47,11 @@ public class FinalField
         if (pluginField.Description != null)
             Description = pluginField.Description;
         if (pluginField.DefaultComputedMethod != null)
+        {
             DefaultComputedMethod = pluginField.DefaultComputedMethod;
+            if (DefaultComputedMethod?.MethodInfo != null)
+                LastOccurenceOfComputedMethod = pluginField;
+        }
         LastOccurence = pluginField;
     }
 
@@ -65,9 +73,9 @@ public class FinalField
             throw new InvalidOperationException($"Computed method {DefaultComputedMethod.DefaultValue} does not exist for field {DefaultComputedMethod.FieldName}");
         // Computed values are called later
         var defaultValue = DefaultComputedMethod.MethodInfo.Invoke(null, null);
-        if (FieldType == FieldType.Date && defaultValue != null && defaultValue?.GetType() == typeof(DateTime))
+        if (FieldType == FieldType.Date && defaultValue is DateTime time)
         {
-            defaultValue = ((DateTime)defaultValue).Date;
+            defaultValue = time.Date;
         }
         return defaultValue;
     }

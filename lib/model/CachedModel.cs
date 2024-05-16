@@ -9,132 +9,41 @@ namespace lib.model;
  */
 public class CachedModel
 {
-    public Environment Env;
-    public int Id;
-    public FinalModel Model;
+    public required Environment Env;
+    public required int Id;
+    public required FinalModel Model;
     public bool Dirty = false;
-    // TODO Add a way to know which value have changed
-    public Dictionary<string, object> Data = new();
-    // Track all created model in order to update their values if one of the existing model is modified & saved
-    public Dictionary<Model, PluginModel> CreatedModels = new();
-
-    /**
-     * Update the cache based on given model
-     */
-    public void UpdateCacheFromModel<T>(T model, PluginModel pluginModel, bool updateDirty = true) where T : Model
-    {
-        if (pluginModel.Fields.Count == 0)
-            return;
-        var type = model.GetType();
-        List<string> fieldsUpdated = [];
-        bool hasBeenUpdated = false;
-        foreach ((string fieldName, _) in pluginModel.Fields)
-        {
-            var fieldInfo = type.GetField(fieldName);
-            if (fieldInfo == null)
-                throw new InvalidOperationException($"Cannot fill field {fieldName} in {model}: Cannot retrieve field!");
-            object? newValue = fieldInfo.GetValue(model);
-            Data.TryGetValue(fieldName, out object? existingValue);
-            if (existingValue == newValue)
-                continue;
-            // Another check, as sometimes you have 2 same values but from different class instance
-            if (existingValue != null && existingValue.Equals(newValue))
-                continue;
-            // If a field has been updated, we also need to update the UpdateDate field
-            if (!hasBeenUpdated)
-            {
-                // Record has been modified, update the "UpdateDate" field
-                UpdateCacheFromData(model, new Dictionary<string, object?>()
-                {
-                    {"UpdateDate", DateTimeProvider.Now},
-                }, updateDirty);
-                hasBeenUpdated = true;
-            }
-            ModifyField(fieldName, newValue, model);
-            if (updateDirty)
-                Dirty = true;
-            fieldsUpdated.Add(fieldName);
-        }
-
-        HashSet<string> fieldsToCompute = [];
-        foreach (var fieldUpdated in fieldsUpdated)
-        {
-            // Do not allow computing on those fields
-            if (fieldUpdated is "Id" or "CreationDate" or "UpdateDate")
-                continue;
-            foreach (var fieldName in Model.Fields[fieldUpdated].InverseCompute.Select(finalField => finalField.Name))
-            {
-                fieldsToCompute.Add(fieldName);
-            }
-        }
-
-        Model.ComputeValues(this, fieldsToCompute);
-    }
+    public Dictionary<string, CachedField> Fields = new();
 
     /**
      * Update the cache based on given data
      */
-    public void UpdateCacheFromData<T>(T model, IReadOnlyDictionary<string, object?> data, bool updateDirty = true) where T: Model
+    public void UpdateCacheFromData(IReadOnlyDictionary<string, object?> data)
     {
-        var type = model.GetType();
-        List<string> fieldsUpdated = [];
         bool hasBeenUpdated = false;
         foreach ((string fieldName, object? newValue) in data)
         {
-            var fieldInfo = type.GetField(fieldName);
-            if (fieldInfo == null)
-                throw new InvalidOperationException($"Cannot fill field {fieldName} in {model}: Cannot retrieve field!");
-            Data.TryGetValue(fieldName, out object? existingValue);
-            if (existingValue == newValue)
+            // Do not allow modification on those fields
+            if (fieldName is "Id" or "CreationDate" or "UpdateDate")
                 continue;
-            // If a field has been updated, we also need to update the UpdateDate field
-            if (!hasBeenUpdated && fieldName != "UpdateDate")
-            {
-                // Record has been modified, update the "UpdateDate" field
-                UpdateCacheFromData(model, new Dictionary<string, object?>()
-                {
-                    {"UpdateDate", DateTimeProvider.Now},
-                }, updateDirty);
+            if (!Fields.TryGetValue(fieldName, out CachedField? cachedField))
+                throw new KeyNotFoundException($"Cannot find field {fieldName} in model {Model.Name}");
+            if (cachedField.ModifyField(newValue))
                 hasBeenUpdated = true;
-            }
-            ModifyField(fieldName, newValue, model, skipOriginalModel: false);
-            if (updateDirty)
-                Dirty = true;
-            fieldsUpdated.Add(fieldName);
         }
-
-        HashSet<string> fieldsToCompute = [];
-        foreach (var fieldUpdated in fieldsUpdated)
-        {
-            // Do not allow computing on those fields
-            if (fieldUpdated is "Id" or "CreationDate" or "UpdateDate")
-                continue;
-            foreach (var fieldName in Model.Fields[fieldUpdated].InverseCompute.Select(finalField => finalField.Name))
-            {
-                fieldsToCompute.Add(fieldName);
-            }
-        }
-
-        Model.ComputeValues(this, fieldsToCompute);
+        // Update "UpdateDate" field
+        if (hasBeenUpdated)
+            Fields["UpdateDate"].ModifyField(DateTimeProvider.Now);
     }
 
-    private void ModifyField(string fieldName, object? newValue, Model originalModel, bool skipOriginalModel = true)
+    /**
+     * Starting from this model, retrieve the target model of given field.
+     * If target model or any model between current model and target one is not loaded, load it in the cache
+     */
+    public CachedModel? GetCachedModelOfTargetField(string targetField)
     {
-        if (newValue == null)
-            Data.Remove(fieldName);
-        else
-        {
-            if (Model.Fields[fieldName].FieldType == FieldType.Date)
-                newValue = ((DateTime)newValue).Date;
-            Data[fieldName] = newValue;
-        }
-        foreach (var (model, _) in CreatedModels.Where(model => model.Value.Fields.ContainsKey(fieldName) && (!skipOriginalModel || model.Key != originalModel)))
-        {
-            var type = model.GetType();
-            var field = type.GetField(fieldName);
-            if (field == null)
-                throw new InvalidOperationException($"Cannot fill field {fieldName} in model {originalModel}: Cannot retrieve field!");
-            field.SetValue(model, newValue);
-        }
+        // For now, we only support fields from the same model
+        // Later, we will support link to other models
+        return this;
     }
 }

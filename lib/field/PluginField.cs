@@ -20,31 +20,31 @@ public class PluginField
     public readonly ComputedValue? DefaultComputedMethod;
     public readonly FieldType FieldType;
 
-    public PluginField(PluginModel pluginModel, FieldDefinitionAttribute definition, FieldInfo fieldInfo, Type classType)
+    public PluginField(PluginModel pluginModel, FieldDefinitionAttribute definition, PropertyInfo propertyInfo, Type classType)
     {
         PluginModel = pluginModel;
-        Type = fieldInfo.FieldType;
-        FieldName = fieldInfo.Name;
+        Type = propertyInfo.PropertyType;
+        FieldName = propertyInfo.Name;
         Name = definition.Name;
         Description = definition.Description;
         // Default values
-        var defaultComputedMethod = new ComputedValue(FieldName, fieldInfo, classType);
+        var defaultComputedMethod = new ComputedValue(FieldName, propertyInfo, classType);
         if (defaultComputedMethod.DefaultValueAttribute != null)
             DefaultComputedMethod = defaultComputedMethod;
         // Field type
-        FieldType = Type.GetTypeCode(fieldInfo.FieldType) switch
+        FieldType = Type.GetTypeCode(propertyInfo.PropertyType) switch
         {
             TypeCode.String => FieldType.String,
             TypeCode.Int32 => FieldType.Integer,
             TypeCode.Decimal => FieldType.Float,
             TypeCode.Boolean => FieldType.Boolean,
             TypeCode.DateTime => FieldType.Datetime,
-            _ => throw new InvalidEnumArgumentException($"Argument type {fieldInfo.FieldType} is invalid!")
+            _ => throw new InvalidEnumArgumentException($"Argument type {propertyInfo.PropertyType} is invalid!")
         };
         // Date / Datetime
         if (FieldType != FieldType.Datetime)
             return;
-        var dateOnlyAttribute = fieldInfo.GetCustomAttribute<DateOnlyAttribute>();
+        var dateOnlyAttribute = propertyInfo.GetCustomAttribute<DateOnlyAttribute>();
         if (dateOnlyAttribute == null)
             return;
         if (dateOnlyAttribute.DateOnly)

@@ -23,19 +23,16 @@ public class PluginModel
         Name = definition.Name;
         Description = definition.Description;
         Fields = new Dictionary<string, PluginField>();
-        var fieldInfos = type.GetFields();
-        foreach (var fieldInfo in fieldInfos)
+        var propertyInfos = type.GetProperties();
+        foreach (var propertyInfo in propertyInfos)
         {
-            var fieldDefinition = fieldInfo.GetCustomAttribute<FieldDefinitionAttribute>();
+            var fieldDefinition = propertyInfo.GetCustomAttribute<FieldDefinitionAttribute>();
             if (fieldDefinition == null)
                 continue;
-            if (fieldInfo.Name == "Id")
+            if (propertyInfo.Name == "Id")
                 continue;
-            var pluginField = new PluginField(this, fieldDefinition, fieldInfo, type);
+            var pluginField = new PluginField(this, fieldDefinition, propertyInfo, type);
             Fields[pluginField.FieldName] = pluginField;
         }
     }
-    
-    // TODO Add environment once implemented
-    public T? CreateNewInstance<T>() => (T?) Activator.CreateInstance(Type);
 }

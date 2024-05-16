@@ -1,6 +1,6 @@
 namespace lib.field.attributes;
 
-[AttributeUsage(AttributeTargets.Field)]
+[AttributeUsage(AttributeTargets.Property)]
 public class DefaultValueAttribute(object defaultValue, bool isMethod = false) : Attribute
 {
     public bool IsMethod { get; } = isMethod;
