@@ -19,7 +19,7 @@ public class MainPlugin: IPlugin
 
     public void OnStart(Environment env)
     {
-        Partner partner1 = env.Create<Partner>();
+        Partner partner1 = env.Create<Partner>([[]]);
         
         Console.WriteLine($"Name: {partner1.Name}");
         Console.WriteLine($"DisplayName (Test): {partner1.DisplayName}");

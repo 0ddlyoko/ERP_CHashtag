@@ -79,19 +79,4 @@ public class FinalModel
         
         return dict;
     }
-    
-    public void FlagComputedValues(CachedModel cachedModel)
-    {
-        foreach (var (fieldName, finalField) in Fields)
-        {
-            if (finalField.IsComputed)
-            {
-                CachedField field = cachedModel.Fields[fieldName];
-                field.ToRecompute = true;
-                // TODO Manage stored computed field differently than non stored
-                field.Dirty = true;
-                field.CachedModel.Dirty = true;
-            }
-        }
-    }
 }

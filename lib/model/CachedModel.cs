@@ -46,4 +46,19 @@ public class CachedModel
         // Later, we will support link to other models
         return this;
     }
+    
+    public void FlagComputedValues()
+    {
+        foreach (var (fieldName, cachedField) in Fields)
+        {
+            FinalField finalField = Model.Fields[fieldName];
+            if (finalField.IsComputed)
+            {
+                cachedField.ToRecompute = true;
+                // TODO Manage stored computed field differently than non stored
+                cachedField.Dirty = true;
+                cachedField.CachedModel.Dirty = true;
+            }
+        }
+    }
 }

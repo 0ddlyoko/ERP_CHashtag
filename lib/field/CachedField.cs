@@ -15,6 +15,8 @@ public class CachedField
     // If ToRecompute, we need to recompute this value
     public bool ToRecompute = false;
     public object? Value;
+    // If ToRetrieve, this value needs to be retrieved from the database
+    public bool ToRetrieve = false;
 
     /**
      * Modify this field
@@ -68,6 +70,7 @@ public class CachedField
      */
     public void RecomputeField()
     {
+        // TODO Find a way to recompute on multiple records at the same time
         if (!ToRecompute)
             return;
         // Before recomputing this field, recompute all fields that this one depends
@@ -82,7 +85,8 @@ public class CachedField
         if (objInstance is not Model instance)
             throw new InvalidOperationException($"Created instance of type {Field.LastOccurence.Type} is not a Model! This should not occur");
         instance.Env = Env;
-        instance.CachedModel = CachedModel;
+        instance.Ids = [CachedModel.Id];
+        instance.ModelName = CachedModel.Model.Name;
         Field.DefaultComputedMethod?.MethodInfo?.Invoke(instance, null);
         
         ToRecompute = false;
@@ -94,6 +98,11 @@ public class CachedField
      */
     private void RecomputeDependentsFields()
     {
+        if (ToRetrieve)
+        {
+            // TODO Retrieves this field from the database
+            throw new NotSupportedException("ToRetrieve is not supported right now: no database support");
+        }
         if (!ToRecompute)
             return;
         string[]? fields = Field.DefaultComputedMethod?.ComputedAttribute?.Fields;

@@ -1,4 +1,5 @@
-﻿using lib.field.attributes;
+﻿using lib.field;
+using lib.field.attributes;
 
 namespace lib.model;
 
@@ -17,12 +18,8 @@ public class Model
     public DateTime UpdateDate => Get<DateTime>("UpdateDate");
 
     public required Environment Env;
-
-    /**
-     * Cache of this model.
-     * Private usage, please never access to this cache nor modify it otherwise unknown behavior will occur
-     */
-    public required CachedModel CachedModel;
+    public required List<int> Ids;
+    public required string ModelName;
 
     /**
      * Save this model to the database.
@@ -35,20 +32,23 @@ public class Model
      * This will also save the model, so any modification made before calling this method will also be saved before
      * saving given data
      */
-    public void Update(IReadOnlyDictionary<string, object?> data) => Env.Update(CachedModel.Model.Name, Id, data);
+    public void Update(IReadOnlyDictionary<string, object?> data) => Env.Update(ModelName, Ids, data);
     
-    public T Transform<T>() where T : Model => Env.Get<T>(Id);
+    public T Transform<T>() where T : Model => Env.Get<T>(Ids);
 
     /**
      * Retrieves the value of given field
      */
     protected T? Get<T>(string fieldName)
-    { 
+    {
         if (fieldName == "Id")
-            return (T) (object) CachedModel.Id;
-        object? realValue = CachedModel.Fields[fieldName].GetRealValue();
-        // TODO Check if null is good here
-        return (T?) realValue;
+        {
+            if (Ids.Count != 1)
+                throw new InvalidOperationException($"Cannot unpack: there is more than one record ({Ids.Count})"); 
+            return (T)(object)Ids[0];
+        }
+
+        return (T?) Env.GetField(ModelName, Ids, fieldName);
     }
 
     /**
