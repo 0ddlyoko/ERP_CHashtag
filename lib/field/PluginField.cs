@@ -15,10 +15,13 @@ public class PluginField
     public APlugin Plugin => PluginModel.Plugin;
     public readonly Type Type;
     public readonly string FieldName;
+    public readonly FieldType FieldType;
     public readonly string? Name;
     public readonly string? Description;
     public readonly ComputedValue? DefaultComputedMethod;
-    public readonly FieldType FieldType;
+    public readonly string? TargetField;
+    public readonly string? OriginColumnName;
+    public readonly string? TargetColumnName;
 
     public PluginField(PluginModel pluginModel, FieldDefinitionAttribute definition, PropertyInfo propertyInfo, Type classType)
     {
@@ -39,17 +42,36 @@ public class PluginField
             TypeCode.Decimal => FieldType.Float,
             TypeCode.Boolean => FieldType.Boolean,
             TypeCode.DateTime => FieldType.Datetime,
+            TypeCode.Object => FieldType.ManyToOne,
             _ => throw new InvalidEnumArgumentException($"Argument type {propertyInfo.PropertyType} is invalid!")
         };
-        // Date / Datetime
-        if (FieldType != FieldType.Datetime)
-            return;
-        var dateOnlyAttribute = propertyInfo.GetCustomAttribute<DateOnlyAttribute>();
-        if (dateOnlyAttribute == null)
-            return;
-        if (dateOnlyAttribute.DateOnly)
+        if (FieldType == FieldType.Datetime)
         {
-            FieldType = FieldType.Date;
+            // Date / Datetime
+            var dateOnlyAttribute = propertyInfo.GetCustomAttribute<DateOnlyAttribute>();
+            if (dateOnlyAttribute?.DateOnly ?? false)
+            {
+                FieldType = FieldType.Date;
+            }
+        }
+        else if (FieldType == FieldType.ManyToOne) 
+        {
+            // ManyToOne / OneToMany / ManyToMany
+            var oneToManyAttribute = propertyInfo.GetCustomAttribute<OneToManyAttribute>();
+            if (oneToManyAttribute != null)
+            {
+                FieldType = FieldType.OneToMany;
+                TargetField = oneToManyAttribute.Target;
+            }
+
+            var manyToManyAttribute = propertyInfo.GetCustomAttribute<ManyToManyAttribute>();
+            if (manyToManyAttribute != null)
+            {
+                FieldType = FieldType.ManyToMany;
+                TargetField = manyToManyAttribute.Target;
+                OriginColumnName = manyToManyAttribute.OriginColumnName;
+                TargetColumnName = manyToManyAttribute.TargetColumnName;
+            }
         }
     }
 }

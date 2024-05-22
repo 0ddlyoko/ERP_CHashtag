@@ -8,4 +8,7 @@ public enum FieldType
     Boolean,
     Date,
     Datetime,
+    ManyToOne,
+    OneToMany,
+    ManyToMany,
 }

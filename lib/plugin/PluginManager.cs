@@ -137,7 +137,6 @@ public class PluginManager(string pluginPath)
     {
         var pluginsToInstall = AvailablePlugins.Where(pl => pl.State == APlugin.PluginState.ToInstall).ToList();
         Console.WriteLine($"Installing {pluginsToInstall.Count} plugins");
-        Environment env = new(this);
         try
         {
             foreach (var plugin in pluginsToInstall)
@@ -150,6 +149,7 @@ public class PluginManager(string pluginPath)
                     // We need to do it to be able to install plugins one by one.
                     // At least, if a plugin is failing to install, other plugins are installed
                     LoadPlugins();
+                    Environment env = new(this);
                     plugin.Plugin.OnStart(env);
                 }
                 catch (Exception)
@@ -240,7 +240,7 @@ public class PluginManager(string pluginPath)
                     if (_models.TryGetValue(id, out var finalModel))
                         finalModel.MergeWith(model);
                     else
-                        _models[id] = new FinalModel(model);
+                        _models[id] = new FinalModel(this, model);
                     _typeToPluginModel[model.Type] = model;
                 }
             }
@@ -248,7 +248,7 @@ public class PluginManager(string pluginPath)
         // Post loading
         foreach (var (_, model) in _models)
         {
-            model.PostLoading();
+            model.PostLoading(this);
         }
     }
 

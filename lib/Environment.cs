@@ -1,4 +1,5 @@
-﻿using lib.field;
+﻿using lib.cache;
+using lib.field;
 using lib.model;
 using lib.plugin;
 
@@ -7,16 +8,14 @@ namespace lib;
 public class Environment
 {
     public readonly PluginManager PluginManager;
-    private readonly Dictionary<string, Dictionary<int, CachedModel>> _cachedModels = new();
+    public readonly Cache Cache;
+    // TODO Remove next line
     private int _id = 1;
 
     public Environment(PluginManager pluginManager)
     {
         PluginManager = pluginManager;
-        foreach (var finalModel in pluginManager.Models)
-        {
-            _cachedModels[finalModel.Name] = new Dictionary<int, CachedModel>();
-        }
+        Cache = new Cache(this);
     }
 
     /**
@@ -33,28 +32,79 @@ public class Environment
         foreach (var d in data)
         {
             var id = _id++;
-            GetDefaultCachedModel(id, d, finalModel);
+            Dictionary<string, object?> defaultValues = GetDefaultValues(finalModel, d);
+
+            Cache.EnsureCacheModelIsPresent(finalModel, [id], create: true);
+            var dateTime = DateTimeProvider.Now;
+            var cachedModel = Cache.CachedModels[finalModel.Name][id];
+            // cachedModel.Fields["Id"].UpdateField(id);
+            cachedModel.Fields["CreationDate"].UpdateField(dateTime);
+            cachedModel.Fields["UpdateDate"].UpdateField(dateTime);
+            
+            Model record = Get<T>([id]);
+            foreach (var (fieldName, value) in defaultValues)
+            {
+                var finalField = finalModel.Fields[fieldName];
+                Cache.Set(record, finalField, value, create: true);
+            }
+            
             ids.Add(id);
         }
-        return Get<T>(ids, pluginModel);
+        return Get<T>(ids);
+    }
+
+    /**
+     * Compute default values for given model with given data
+     */
+    private Dictionary<string, object?> GetDefaultValues(FinalModel model, Dictionary<string, object?> data)
+    {
+        Dictionary<string, object?> result = new Dictionary<string, object?>(data);
+
+        foreach (var (key, value) in model.GetDefaultValues(result.Keys.ToList()))
+        {
+            result[key] = value;
+        }
+
+        return result;
     }
 
     /**
      * Retrieves given record from the cache, or from the database if not found
      */
     public T Get<T>(int id) where T : Model => 
-        Get<T>([id], PluginManager.GetPluginModelFromType(typeof(T)));
+        Get<T>([id]);
+
+    public object Get(int id, Type type) =>
+        Get([id], type);
 
     public T Get<T>(List<int> ids) where T : Model =>
-        Get<T>(ids, PluginManager.GetPluginModelFromType(typeof(T)));
+        (T) Get(ids, typeof(T));
 
-    private T Get<T>(List<int> ids, PluginModel pluginModel) where T : Model
+    public Model Get(List<int> ids, Type type)
     {
-        T t = Activator.CreateInstance<T>();
-        t.Env = this;
-        t.Ids = ids;
-        t.ModelName = pluginModel.Name;
-        return t;
+        var pluginModel = PluginManager.GetPluginModelFromType(type);
+        var t = Activator.CreateInstance(type);
+        if (t == null)
+            throw new InvalidOperationException($"Cannot create an instance of Model with ids {ids}: null");
+        if (t is not Model model)
+            throw new InvalidOperationException($"This should not occur");
+        model.Env = this;
+        model.Ids = ids;
+        model.ModelName = pluginModel.Name;
+        return model;
+    }
+
+    public Model Get(List<int> ids, string modelName)
+    {
+        var t = Activator.CreateInstance(typeof(Model));
+        if (t == null)
+            throw new InvalidOperationException($"Cannot create an instance of Model with ids {ids}: null");
+        if (t is not Model model)
+            throw new InvalidOperationException($"This should not occur");
+        model.Env = this;
+        model.Ids = ids;
+        model.ModelName = modelName;
+        return model;
     }
 
     public void Save<T>(T model) where T : Model =>
@@ -65,111 +115,141 @@ public class Environment
         // Save model in database
     }
 
-    public void Update(string modelName, int id, IReadOnlyDictionary<string, object?> data)
-    {
-        Update(modelName, [id], data);
-    }
-
-    public void Update(string modelName, List<int> ids, IReadOnlyDictionary<string, object?> data)
-    {
-        UpdateModelToCache(modelName, ids, data);
-    }
+    /**
+     * Retrieve given field for given records.
+     * If field is ManyToOne, OneToMany or ManyToMany, the returned value is an instance of a Model and is not null
+     * List order is preserved
+     */
+    public List<object?> RetrieveField(List<int> ids, string modelName, string fieldName, bool recompute = true) => 
+        RetrieveField(ids, PluginManager.GetFinalModel(modelName).Fields[fieldName], recompute: recompute);
 
     /**
-     * Create a default cached model based on given data, and save it to cache
+     * Retrieve given field for given records.
+     * If field is ManyToOne, OneToMany or ManyToMany, the returned value is an instance of a Model and is not null
+     * List order is preserved
      */
-    private CachedModel GetDefaultCachedModel(int id, FinalModel finalModel) =>
-        GetDefaultCachedModel(id, new Dictionary<string, object?>(), finalModel);
-
-    private CachedModel GetDefaultCachedModel(int id, Dictionary<string, object?> data, FinalModel finalModel)
-    {
-        var cachedModel = GetCachedModel(finalModel.Name, id);
-        // Default values
-        Dictionary<string, object> defaultValues = finalModel.GetDefaultValues(id);
-        foreach (var (key, value) in data)
-        {
-            if (value == null)
-                defaultValues.Remove(key);
-            else
-                defaultValues[key] = value;
-        }
-
-        var dateTime = DateTimeProvider.Now;
-        defaultValues["CreationDate"] = dateTime;
-        defaultValues["UpdateDate"] = dateTime;
-        // Fields
-        foreach (var (fieldName, cachedField) in cachedModel.Fields)
-        {
-            cachedField.Value = defaultValues!.GetValueOrDefault(fieldName, null);
-            cachedField.ToRetrieve = false;
-        }
-        // Once inserted, flag computed fields as ToRecompute
-        cachedModel.FlagComputedValues();
-        return cachedModel;
-    }
+    public List<object?> RetrieveField(List<int> ids, FinalField field, bool recompute = true) =>
+        RetrieveField(Get(ids, field.FinalModel.Name), field, recompute: recompute);
 
     /**
-     * Ensure that the given model has a CachedModel for each id
+     * Retrieve given field for given records.
+     * If field is ManyToOne, OneToMany or ManyToMany, the returned value is an instance of a Model and is not null
+     * List order is preserved
      */
-    private void EnsureCachedModelIsPresent(string modelName, List<int> ids)
+    public List<object?> RetrieveField(Model records, FinalField field, bool recompute = true)
     {
-        foreach (var id in ids)
+        List<object?> result = Cache.Get(records, field, recompute: recompute);
+        if (field.FieldType is FieldType.ManyToOne or FieldType.OneToMany or FieldType.ManyToMany)
         {
-            if (!_cachedModels[modelName].ContainsKey(id))
+            // Convert List<int> to Model instance
+            // We know each element is a list of int, or a single int
+            result = result.Select(elem =>
             {
-                CachedModel cachedModel = new CachedModel
+                List<int> r = elem switch
                 {
-                    Env = this,
-                    Id = id,
-                    Model = PluginManager.GetFinalModel(modelName),
-                    Dirty = false,
+                    null => [],
+                    List<int> lst => lst,
+                    int i => [i],
+                    _ => throw new InvalidOperationException($"Elem should either be an int or a list of int")
                 };
-                Dictionary<string, CachedField> fields = PluginManager.GetFinalModel(modelName).Fields.ToDictionary(
-                    f => f.Key,
-                    f => new CachedField
-                    {
-                        Env = this,
-                        CachedModel = cachedModel,
-                        Field = f.Value,
-                        Value = null,
-                        ToRetrieve = true,
-                    });
-                cachedModel.Fields = fields;
-                _cachedModels[modelName][id] = cachedModel;
+
+                return (object?) Get(r, field.FinalModel.Name);
+            }).ToList();
+        }
+        return result;
+    }
+
+    public void UpdateFields(string modelName, int id, IReadOnlyDictionary<string, object?> data)
+    {
+        UpdateFields(modelName, [id], data);
+    }
+
+    public void UpdateFields(string modelName, List<int> ids, IReadOnlyDictionary<string, object?> data)
+    {
+        var finalModel = PluginManager.GetFinalModel(modelName);
+        UpdateFields(Get(ids, finalModel.Name), data);
+    }
+
+    public void UpdateFields(Model records, IReadOnlyDictionary<string, object?> data)
+    {
+        var finalModel = PluginManager.GetFinalModel(records.ModelName);
+        foreach (var (fieldName, value) in data)
+        {
+            var finalField = finalModel.Fields[fieldName];
+            UpdateField(finalField, records, value);
+        }
+        UpdateField(finalModel.Fields["UpdateDate"], records, DateTimeProvider.Now);
+        // Field updated, remove them from the ToCompute
+        foreach (var (fieldName, _) in data)
+        {
+            var finalField = finalModel.Fields[fieldName];
+            Cache.RemoveAsRecompute(finalField, records.Ids);
+        }
+    }
+
+    private void UpdateField(FinalField field, Model records, object? value)
+    {
+        Cache.Set(records, field, value);
+    }
+    
+    // Compute methods
+
+    /**
+     * Compute given field for all records that need to be computed
+     */
+    public void ComputeField(FinalField field)
+    {
+         // Maybe a field is a dependent of himself.
+         // Make sure everything is correctly computed.
+         // TODO sort correctly the list of ids to avoid this situation
+        for (var i = 0; i < 100; i++)
+        {
+            var idsToCompute = Cache.ToRecompute[field.FinalModel.Name][field.FieldName].ToList();
+            if (idsToCompute.Count == 0)
+                break;
+            Cache.ComputeFields(field, idsToCompute);
+        }
+    }
+
+    /**
+     * Compute given model for all records that need to be computed
+     */
+    public void ComputeModel(FinalModel model)
+    {
+        for (var i = 0; i < 100; i++)
+        {
+            foreach (var (_, field) in model.Fields)
+            {
+                ComputeField(field);
             }
         }
     }
 
     /**
-     * Update cache of given ids to given data
+     * Compute given field for given records
      */
-    private void UpdateModelToCache(string modelName, List<int> ids, IReadOnlyDictionary<string, object?> data)
+    public void ComputeField(FinalField field, Model records)
     {
-        foreach (var id in ids)
+        for (var i = 0; i < 100; i++)
         {
-            // We assume the model & id already exist in cache
-            var cachedModel = GetCachedModel(modelName, id);
-            cachedModel.UpdateCacheFromData(data);
-            cachedModel.Dirty = true;
+            Cache.ComputeFields(field, records.Ids);
+            if (!records.Ids.Any(id => Cache.IsToRecompute(field, id)))
+                break;
         }
     }
 
-    public object? GetField(string modelName, List<int> ids, string fieldName)
+    /**
+     * Compute given model
+     */
+    public void ComputeRecords(Model records)
     {
-        FinalField finalField = PluginManager.GetFinalModel(modelName).Fields[fieldName];
-        if (ids.Count != 1 && finalField.FieldType is FieldType.Boolean or FieldType.Date or FieldType.Datetime
-                or FieldType.Float or FieldType.Integer or FieldType.String)
-            throw new InvalidOperationException($"Cannot unpack: there is more than one record ({ids.Count}");
-        EnsureCachedModelIsPresent(modelName, ids);
-        if (ids.Count == 1)
-            return _cachedModels[modelName][ids[0]].Fields[fieldName].GetRealValue();
-        // Not supported right now
-        throw new NotSupportedException("Record with multiple ids is not supported in this method right now");
-    }
-
-    public CachedModel GetCachedModel(string modelName, int id)
-    {
-        EnsureCachedModelIsPresent(modelName, [id]);
-        return _cachedModels[modelName][id];
+        var model = PluginManager.GetFinalModel(records.ModelName);
+        for (var i = 0; i < 100; i++)
+        {
+            foreach (var (_, field) in model.Fields)
+            {
+                ComputeField(field, records);
+            }
+        }
     }
 }

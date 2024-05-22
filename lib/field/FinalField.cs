@@ -7,6 +7,7 @@ namespace lib.field;
  */
 public class FinalField
 {
+    public readonly FinalModel FinalModel;
     public readonly string FieldName;
     public readonly FieldType FieldType;
     public readonly PluginField FirstOccurence;
@@ -17,10 +18,40 @@ public class FinalField
     public string Description;
     public ComputedValue? DefaultComputedMethod;
     public bool IsComputed => DefaultComputedMethod?.IsComputed ?? false;
-    public readonly List<string> InverseCompute = [];
 
-    public FinalField(PluginField firstOccurence)
+    /**
+     * Contains the inverse compute fields that depends on this FinalField.<br/>
+     * string could be a direct or a dotted link to a computed field<br/>
+     * For dotted links, each element can be a field name, or if there is no double link between both models, the target model followed by a plus (+) followed by the field name of the target.<br/>
+     * If direct link is possible, compute will not directly be performed, but if there is no direct link in one node (aka the + symbol),
+     * we need to compute it to have the new correct value.
+     */
+    public readonly TreeDependency TreeDependency;
+    public Type TargetType => FirstOccurence.Type;
+
+    public FinalModel? TargetFinalModel
     {
+        get
+        {
+            try
+            {
+                return FinalModel.PluginManager.GetFinalModel(FinalModel.PluginManager
+                    .GetPluginModelFromType(TargetType).Name);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+    }
+    public FinalField? TargetFinalField => TargetField == null ? null : TargetFinalModel?.Fields[TargetField];
+    public string? TargetField;
+    public string? OriginColumnName;
+    public string? TargetColumnName;
+
+    public FinalField(FinalModel finalModel, PluginField firstOccurence)
+    {
+        FinalModel = finalModel;
         FieldName = firstOccurence.FieldName;
         FieldType = firstOccurence.FieldType;
         FirstOccurence = firstOccurence;
@@ -31,6 +62,13 @@ public class FinalField
         DefaultComputedMethod = firstOccurence.DefaultComputedMethod;
         if (DefaultComputedMethod?.MethodInfo != null)
             LastOccurenceOfComputedMethod = firstOccurence;
+        if (firstOccurence.TargetField != null)
+            TargetField = firstOccurence.TargetField;
+        if (firstOccurence.OriginColumnName != null)
+            OriginColumnName = firstOccurence.OriginColumnName;
+        if (firstOccurence.TargetColumnName != null)
+            TargetColumnName = firstOccurence.TargetColumnName;
+        TreeDependency = new TreeDependency(root: this);
     }
 
     public void MergeWith(PluginField pluginField)
@@ -53,6 +91,14 @@ public class FinalField
                 LastOccurenceOfComputedMethod = pluginField;
         }
         LastOccurence = pluginField;
+        if (TargetType != pluginField.Type)
+            throw new InvalidOperationException($"Field {FieldName} in model {FinalModel.Name} has changed type from {TargetType} to {pluginField.Type}!");
+        if (pluginField.TargetField != null)
+            TargetField = pluginField.TargetField;
+        if (pluginField.OriginColumnName != null)
+            OriginColumnName = pluginField.OriginColumnName;
+        if (pluginField.TargetColumnName != null)
+            TargetColumnName = pluginField.TargetColumnName;
     }
 
     public object? GetDefaultValue()
@@ -79,4 +125,6 @@ public class FinalField
         }
         return defaultValue;
     }
+
+    public override string ToString() => $"FinalField[Model={FinalModel.Name}, Field={FieldName}, Name={Name}]";
 }

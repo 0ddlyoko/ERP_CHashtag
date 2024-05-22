@@ -19,6 +19,9 @@ public class TestPlugin: IPlugin
             typeof(TestPartner),
             typeof(TestPartner2),
             typeof(TestPartner3),
+            typeof(TestCategory),
+            typeof(TestMultipleRecompute),
+            typeof(TestModel2),
         ];
     }
 

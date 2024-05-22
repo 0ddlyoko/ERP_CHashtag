@@ -18,7 +18,7 @@ public class TestPartner: Model
 
     [FieldDefinition]
     [DefaultValue(nameof(DefaultRandomColor), isMethod: true)]
-    public int Color { get => Get<int>("Age"); set => Set("Age", value); }
+    public int Color { get => Get<int>("Color"); set => Set("Color", value); }
 
     // Compute
     [FieldDefinition(Description = "Name to display of the partner")]
@@ -33,6 +33,9 @@ public class TestPartner: Model
     [FieldDefinition(Name = "MyTime", Description = "My Date Time")]
     public DateTime MyDateTime { get => Get<DateTime>("MyDateTime"); set => Set("MyDateTime", value); }
     
+    [FieldDefinition(Name = "Category", Description = "Partner's category")]
+    public TestCategory? Category { get => Get<TestCategory?>("Category"); set => Set("Category", value); }
+    
     // Default method
     public static int DefaultRandomColor() => 42;
 
@@ -42,7 +45,10 @@ public class TestPartner: Model
     [Computed(["Name", "Age"])]
     public void ComputeDisplayName()
     {
-        DisplayName = $"Name: {Name}, Age: {Age}";
+        foreach (TestPartner rec in this)
+        {
+            rec.DisplayName = $"Name: {rec.Name}, Age: {rec.Age}";
+        }
     }
 }
 

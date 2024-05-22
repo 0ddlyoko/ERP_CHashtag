@@ -14,6 +14,8 @@ public class MainPlugin: IPlugin
     {
         return [
             typeof(Partner),
+            typeof(Partner2),
+            typeof(Partner3),
         ];
     }
 
