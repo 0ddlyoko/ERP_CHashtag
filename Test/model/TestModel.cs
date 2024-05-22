@@ -150,11 +150,34 @@ public class TestModel
             {"Age", 54},
         });
         Assert.That(partner.DisplayName, Is.EqualTo("Name: 1ddlyoko, Age: 54"), "Modifying a field from a child model should recompute the method");
+    }
 
-        Assert.That(cachedModel.Fields["DisplayName"].ToRecompute, Is.False);
+    [Test]
+    public void TestRecomputeNotDoneIfFieldIsSet()
+    {
+        TestPartner partner = _env.Create<TestPartner>([[]]);
+        CachedModel cachedModel = _env.GetCachedModel(partner.ModelName, partner.Id);
+        
+        Assert.That(cachedModel.Fields["DisplayName"].ToRecompute, Is.True);
         partner.Name = "Test";
         Assert.That(cachedModel.Fields["DisplayName"].ToRecompute, Is.True);
         partner.DisplayName = "My Own display name";
+        Assert.That(cachedModel.Fields["DisplayName"].ToRecompute, Is.False);
+    }
+
+    [Test]
+    public void TestRecomputeNotDoneIfUpdateIsCalledWithComputedField()
+    {
+        TestPartner partner = _env.Create<TestPartner>([[]]);
+        CachedModel cachedModel = _env.GetCachedModel(partner.ModelName, partner.Id);
+        
+        Assert.That(cachedModel.Fields["DisplayName"].ToRecompute, Is.True);
+        partner.Update(new Dictionary<string, object?>
+        {
+            {"Name", "0ddlyoko"},
+            {"DisplayName", "My Own Display Name"},
+            {"Age", 54},
+        });
         Assert.That(cachedModel.Fields["DisplayName"].ToRecompute, Is.False);
     }
 

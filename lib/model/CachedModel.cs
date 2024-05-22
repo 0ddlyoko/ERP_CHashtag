@@ -34,6 +34,15 @@ public class CachedModel
         // Update "UpdateDate" field
         if (hasBeenUpdated)
             Fields["UpdateDate"].ModifyField(DateTimeProvider.Now);
+        // Now, update "ToRecompute" field
+        foreach((string fieldName, _) in data)
+        {
+            // Do not allow modification on those fields
+            if (fieldName is "Id" or "CreationDate" or "UpdateDate")
+                continue;
+            // We assume fieldName is in "Fields" otherwise previous loop will fail
+            Fields[fieldName].ToRecompute = false;
+        }
     }
 
     /**
