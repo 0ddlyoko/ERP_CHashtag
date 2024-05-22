@@ -150,6 +150,12 @@ public class TestModel
             {"Age", 54},
         });
         Assert.That(partner.DisplayName, Is.EqualTo("Name: 1ddlyoko, Age: 54"), "Modifying a field from a child model should recompute the method");
+
+        Assert.That(cachedModel.Fields["DisplayName"].ToRecompute, Is.False);
+        partner.Name = "Test";
+        Assert.That(cachedModel.Fields["DisplayName"].ToRecompute, Is.True);
+        partner.DisplayName = "My Own display name";
+        Assert.That(cachedModel.Fields["DisplayName"].ToRecompute, Is.False);
     }
 
     [Test]
