@@ -1,3 +1,5 @@
+using Npgsql;
+
 namespace lib.database;
 
 public static class DatabaseHelper
@@ -6,38 +8,29 @@ public static class DatabaseHelper
     
     public static async Task<int> CreateTable(DatabaseConnection connection, string tableName, string? tableDescription = null)
     {
-        var cmd = connection.CreateRequest("CREATE TABLE @tableName (id INTEGER PRIMARY KEY); COMMENT ON TABLE @tableName IS @comment", new()
-        {
-            Parameters = [
-                new("tableName", tableName),
-                new("comment", tableDescription ?? tableName),
-            ],
-        });
+        var cmd = CreateRequest(connection, "CREATE TABLE @tableName (id INTEGER PRIMARY KEY); COMMENT ON TABLE @tableName IS @comment", [
+            new SingleParameter("tableName", tableName),
+            new SingleParameter("comment", tableDescription ?? tableName),
+        ]);
         return await cmd.ExecuteNonQueryAsync();
     }
 
     public static async Task<int> RenameTable(DatabaseConnection connection, string oldTableName, string newTableName,
         string? tableDescription = null)
     {
-        var cmd = connection.CreateRequest("ALTER TABLE @oldTableName RENAME TO @newTableName; COMMENT ON TABLE @tableName IS @comment", new()
-        {
-            Parameters = [
-                new("oldTableName", oldTableName),
-                new("newTableName", newTableName),
-                new("comment", tableDescription ?? newTableName),
-            ],
-        });
+        var cmd = CreateRequest(connection, "ALTER TABLE @oldTableName RENAME TO @newTableName; COMMENT ON TABLE @tableName IS @comment", [
+            new SingleParameter("oldTableName", oldTableName),
+            new SingleParameter("newTableName", newTableName),
+            new SingleParameter("comment", tableDescription ?? newTableName),
+        ]);
         return await cmd.ExecuteNonQueryAsync();
     }
 
     public static async Task<int> DropTable(DatabaseConnection connection, string tableName)
     {
-        var cmd = connection.CreateRequest("DROP TABLE @tableName", new()
-        {
-            Parameters = [
-                new("tableName", tableName),
-            ],
-        });
+        var cmd = CreateRequest(connection, "DROP TABLE @tableName", [
+            new SingleParameter("tableName", tableName),
+        ]);
         return await cmd.ExecuteNonQueryAsync();
     }
 
@@ -50,10 +43,10 @@ public static class DatabaseHelper
         var request = "ALTER TABLE @tableName ADD COLUMN @columnName @columnType";
         List<SingleParameter> parameters =
         [
-            new("tableName", tableName),
-            new("columnName", columnName),
-            new("columnType", columnType),
-            new("comment", columnDescription ?? columnName),
+            new SingleParameter("tableName", tableName),
+            new SingleParameter("columnName", columnName),
+            new SingleParameter("columnType", columnType),
+            new SingleParameter("comment", columnDescription ?? columnName),
         ];
         // TODO Check for other type
         if (columnType == "timestamp")
@@ -69,24 +62,19 @@ public static class DatabaseHelper
 
 
         request += "; COMMENT ON COLUMN @tableName.@columnName IS @comment";
-        var cmd = connection.CreateRequest(request, new()
-        {
-            Parameters = parameters,
-        });
+        
+        var cmd = CreateRequest(connection, request, parameters);
         return await cmd.ExecuteNonQueryAsync();
     }
 
     public static async Task<int> RenameColumn(DatabaseConnection connection, string tableName, string oldColumnName, string newColumnName, string? columnDescription = null)
     {
-        var cmd = connection.CreateRequest("ALTER TABLE @tableName RENAME COLUMN @oldColumnName TO @newColumnName; COMMENT ON COLUMN @tableName.@newColumnName IS @comment", new()
-        {
-            Parameters = [
-                new("tableName", tableName),
-                new("oldColumnName", oldColumnName),
-                new("newColumnName", newColumnName),
-                new("comment", columnDescription ?? newColumnName),
-            ],
-        });
+        var cmd = CreateRequest(connection, "ALTER TABLE @tableName RENAME COLUMN @oldColumnName TO @newColumnName; COMMENT ON COLUMN @tableName.@newColumnName IS @comment", [
+            new SingleParameter("tableName", tableName),
+            new SingleParameter("oldColumnName", oldColumnName),
+            new SingleParameter("newColumnName", newColumnName),
+            new SingleParameter("comment", columnDescription ?? newColumnName),
+        ]);
         return await cmd.ExecuteNonQueryAsync();
     }
 
@@ -97,8 +85,8 @@ public static class DatabaseHelper
         var request = "ALTER TABLE @tableName ";
         List<SingleParameter> parameters =
         [
-            new("tableName", tableName),
-            new("columnName", columnName),
+            new SingleParameter("tableName", tableName),
+            new SingleParameter("columnName", columnName),
         ];
         List<string> alters = [];
         if (required == true)
@@ -121,7 +109,7 @@ public static class DatabaseHelper
         if (columnDescription != null)
         {
             request += "; COMMENT ON COLUMN @tableName.@columnName IS @comment";
-            parameters.Add(new("comment", columnDescription));
+            parameters.Add(new SingleParameter("comment", columnDescription));
         }
 
         if (constraintsToRemove != null)
@@ -139,23 +127,26 @@ public static class DatabaseHelper
                 request += $"; ALTER TABLE @tableName ADD CONSTRAINT {constraintToAdd}";
             }
         }
-        var cmd = connection.CreateRequest(request, new()
-        {
-            Parameters = parameters,
-        });
+        var cmd = CreateRequest(connection, request, parameters);
         return await cmd.ExecuteNonQueryAsync();
     }
 
     public static async Task<int> DropColumn(DatabaseConnection connection, string tableName, string columnName)
     {
-        var cmd = connection.CreateRequest("ALTER TABLE @tableName DROP COLUMN @columnName", new()
-        {
-            Parameters = [
-                new("tableName", tableName),
-                new("columnName", columnName),
-            ],
-        });
+        var cmd = CreateRequest(connection, "ALTER TABLE @tableName DROP COLUMN @columnName", [
+            new SingleParameter("tableName", tableName),
+            new SingleParameter("columnName", columnName),
+        ]);
         return await cmd.ExecuteNonQueryAsync();
+    }
+
+    #endregion
+
+    #region CreateRequest
+
+    public static NpgsqlCommand CreateRequest(DatabaseConnection connection, string request, List<SingleParameter>? parameters = null)
+    {
+        return parameters == null ? connection.CreateRequest(request) : connection.CreateRequest(request, new DatabaseParameters { Parameters = parameters, });
     }
 
     #endregion
