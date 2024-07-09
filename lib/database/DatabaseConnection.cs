@@ -19,23 +19,23 @@ public class DatabaseConnection
         Connection.Close();
     }
 
-    public NpgsqlCommand CreateRequest(string request, DatabaseParameters? parameters = null)
+    public NpgsqlCommand CreateRequest(string request, List<DatabaseParameter>? parameters = null)
     {
         NumberOfRequests++;
         return _makeNpgsqlCommand(request, parameters);
     }
 
-    private NpgsqlCommand _makeNpgsqlCommand(string request, DatabaseParameters? parameters = null)
+    private NpgsqlCommand _makeNpgsqlCommand(string request, List<DatabaseParameter>? parameters = null)
     {
         var npgsqlCommand = new NpgsqlCommand(request);
         if (parameters != null)
         {
-            foreach (var parameter in parameters.Parameters)
+            foreach (var parameter in parameters)
             {
                 if (parameter.Key != null)
-                    npgsqlCommand.Parameters.Add(new(parameter.Key, parameter.Value));
+                    npgsqlCommand.Parameters.Add(new NpgsqlParameter(parameter.Key, parameter.Value));
                 else
-                    npgsqlCommand.Parameters.Add(new() { Value = parameter.Value });
+                    npgsqlCommand.Parameters.Add(new NpgsqlParameter { Value = parameter.Value });
             }
         }
         return npgsqlCommand;
