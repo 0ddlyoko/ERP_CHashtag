@@ -7,6 +7,7 @@ namespace lib.database;
  */
 public class DatabaseConnectionConfig
 {
+    
     public required string Host;
     public required string DbName;
     public required string User;
@@ -30,8 +31,9 @@ public class DatabaseConnectionConfig
      * Open a new connection to the database.
      * Don't forget to close it otherwise the connection will stay open, and the application could crash
      */
-    public DatabaseConnection Open() => new() 
+    public DatabaseConnection Open(Environment env) => new() 
     { 
+        Env = env,
         Connection = Database.OpenConnection(),
     };
 }

@@ -4,6 +4,7 @@ namespace lib.database;
 
 public class DatabaseConnection
 {
+    public required Environment Env;
     public required NpgsqlConnection Connection;
     public bool IsClosed = false;
     public int NumberOfRequests = 0;

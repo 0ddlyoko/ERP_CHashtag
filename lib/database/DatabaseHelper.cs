@@ -82,7 +82,7 @@ public static class DatabaseHelper
         bool? required = null, bool dropDefault = false, string? defaultValue = null, string? columnDescription = null,
         List<string>? constraintsToAdd = null, List<string>? constraintsToRemove = null)
     {
-        var request = "ALTER TABLE @tableName ";
+        var request = "ALTER TABLE @tableName";
         List<DatabaseParameter> parameters =
         [
             new DatabaseParameter("tableName", tableName),
@@ -90,17 +90,17 @@ public static class DatabaseHelper
         ];
         List<string> alters = [];
         if (required == true)
-            alters.Add(" SET NOT NULL");
+            alters.Add("SET NOT NULL");
         if (required == false)
-            alters.Add(" DROP NOT NULL");
+            alters.Add("DROP NOT NULL");
         if (defaultValue != null)
-            alters.Add($" DEFAULT {defaultValue}");
+            alters.Add($"DEFAULT {defaultValue}");
         if (dropDefault)
-            alters.Add(" DROP DEFAULT");
+            alters.Add("DROP DEFAULT");
 
         foreach (var alter in alters)
         {
-            request += $"ALTER COLUMN @columnName {alter},";
+            request += $" ALTER COLUMN @columnName {alter},";
         }
 
         if (request.Last() == ',')

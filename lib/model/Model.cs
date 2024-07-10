@@ -90,6 +90,11 @@ public class Model: IEnumerable, IEnumerator, IEquatable<Model>
         });
     }
 
+    public Model Search(List<object> domain)
+    {
+        Search(["&", new List<object> { "name", "=", "test" }, new List<object> { "age", ">=", 18 }]);
+    }
+
     public bool Equals(Model? other)
     {
         if (other == null)
