@@ -1,3 +1,4 @@
+using lib.field;
 using lib.model;
 
 namespace lib.database;
@@ -61,6 +62,30 @@ public class Query
                 localArguments.AddRange(secondResult.Item2);
                 return ($"({firstResult.Item1} {separator} {secondResult.Item2})", localArguments);
             }
+
+            if (singleDomain is List<object> lst)
+            {
+                if (lst.Count != 3)
+                    throw new InvalidOperationException($"Given list should be of length 3, not {lst.Count}. List: {lst}");
+                if (lst[0] is not string arg1)
+                    throw new InvalidOperationException($"First argument of a domain should be a string, but is {lst[0]}");
+                if (lst[1] is not string arg2)
+                    throw new InvalidOperationException($"Second argument of a domain should be a string, but is {lst[1]}");
+
+                string[] path = arg1.Split('.');
+                var currentModel = model.Env.PluginManager.GetFinalModel(model.ModelName);
+                for (int i = 0; i < path.Length - 1; i++)
+                {
+                    currentModel.Fields.TryGetValue(path[i], out var finalField);
+                    if (finalField == null)
+                        throw new InvalidOperationException($"Invalid field {path[i]}: Field not found in model {currentModel.Name} for domain {singleDomain}");
+                    if (finalField.FieldType is not FieldType.ManyToOne and not FieldType.OneToMany and not FieldType.ManyToMany)
+                        throw new InvalidOperationException($"Field {path[i]} of model {currentModel.Name} used in domain {singleDomain} should be of type M2O, O2M or M2M");
+                    
+                }
+            }
+
+            throw new InvalidOperationException($"Invalid node: {singleDomain}. Must be a list, or '|', or '&'");
             // TODO Search on single domain
         }
     }
