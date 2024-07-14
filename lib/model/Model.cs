@@ -41,7 +41,7 @@ public class Model: IEnumerable, IEnumerator, IEquatable<Model>
      * Retrieves the value of given field
      * If recompute is False, we do not recompute the field if it needs to be recomputed, except if ToRetrieve is true.
      */
-    public T? Get<T>(string fieldName, bool recompute = true)
+    public T Get<T>(string fieldName, bool recompute = true)
     {
         if (fieldName == "Id")
         {
