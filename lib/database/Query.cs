@@ -8,13 +8,12 @@ public class Query
 {
     
     /**
-     * Transform the domain into a WHERE clause with corresponding LEFT JOIN & arguments, in order:
-     * (domain (where), left join, arguments)
-     * [('name', '=', "Test")]
-     * [('name', '=', "Test"), ('age', '>=', 18)]
-     * [('partner_id.name', '=', 'Test'), ('age', '>=', 18)]
-     * [('partner_id.name', '=', 'Test'), ('partner_id.age', '>=', 18)]
-     * ['|', ('partner_id.name', '=', 'Test'), ('partner_id.age', '>=', 18)]
+     * Transform the domain into a query, and return it
+     * [('Name', '=', "Test")]
+     * [('Name', '=', "Test"), ('age', '>=', 18)]
+     * [('PartnerId.Name', '=', 'Test'), ('Age', '>=', 18)]
+     * [('PartnerId.Name', '=', 'Test'), ('PartnerId.age', '>=', 18)]
+     * ['|', ('PartnerId.Name', '=', 'Test'), ('PartnerId.Age', '>=', 18)]
      */
     public static DomainQuery DomainToQuery(FinalModel finalModel, List<object> domain)
     {
@@ -64,12 +63,22 @@ public class Query
                 var currentModel = finalModel;
                 var currentModelPath = finalModel.Name;
                 List<string> paths = [currentModelPath];
-                foreach (var currentPath in arg1.Split('.').SkipLast(1))
+                var split = arg1.Split('.');
+                var useId = false;
+                for (int i = 0; i < split.Length; i++)
                 {
+                    var currentPath = split[i];
                     paths.Add(currentPath);
                     currentModel.Fields.TryGetValue(currentPath, out var currentField);
                     if (currentField == null)
                         throw new InvalidOperationException($"Invalid field {currentPath}: Field not found in model {currentModel.Name} for domain {singleDomain}");
+                    if (i == split.Length - 1)
+                    {
+                        if (currentField.FieldType is FieldType.OneToMany or FieldType.ManyToMany)
+                            useId = true;
+                        else
+                            break;
+                    }
                     if (currentField.FieldType is not FieldType.ManyToOne and not FieldType.OneToMany and not FieldType.ManyToMany)
                         throw new InvalidOperationException($"Field {currentPath} of model {currentModel.Name} used in domain {singleDomain} should be of type M2O, O2M or M2M");
                     var targetModel = currentField.TargetFinalModel;
@@ -108,7 +117,7 @@ public class Query
                 }
                 
                 // Add domain
-                var finalField = currentModel.Fields[arg1.Split('.').Last()];
+                var finalFieldName = useId ? "Id" : currentModel.Fields[arg1.Split('.').Last()].FieldName;
                 var operation = arg2 switch
                 {
                     "=" => "=",
@@ -119,12 +128,13 @@ public class Query
                     "<=" => "<=",
                     "like" => "LIKE",
                     "ilike" => "ILIKE",
+                    "in" => "IN",
                     _ => throw new InvalidOperationException($"Invalid operator: {arg2}")
                 };
                 var nbrOfArgs = result.Arguments.Count + 1;
                 result.AddArgument(tuple[2]);
 
-                return $"(\"{currentModelPath}\".\"{finalField.FieldName}\" {operation} ${nbrOfArgs})";
+                return $"(\"{currentModelPath}\".\"{finalFieldName}\" {operation} ${nbrOfArgs})";
             }
 
             throw new InvalidOperationException($"Invalid node: {singleDomain}. Must be a list, or '|', or '&'");

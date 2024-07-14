@@ -82,16 +82,61 @@ public class TestQuery
     public void TestLeftJoinDomains()
     {
         Query.DomainQuery domainQuery = Query.DomainToQuery(_finalModel, [("Category.Name", "=", "Test")]);
-        
+
         Assert.That(domainQuery.Where, Is.EqualTo("((\"test_partner.Category\".\"Name\" = $1))"));
         Assert.That(domainQuery.Arguments, Is.EquivalentTo(new[] { "Test" }));
-        Assert.That(domainQuery.LeftJoins, Is.EquivalentTo(new[] { "LEFT JOIN \"test_category\" AS \"test_partner.Category\" ON \"test_partner\".\"Category\" = \"test_partner.Category\".\"id\"" }));
-        
-        
-        domainQuery = Query.DomainToQuery(_finalModel, [("Category.Name", "=", "Test"), ("Category.Partners.Name", "like", "Hello")]);
-        
-        Assert.That(domainQuery.Where, Is.EqualTo("((\"test_partner.Category\".\"Name\" = $1) AND (\"test_partner.Category.Partners\".\"Name\" LIKE $2))"));
+        Assert.That(domainQuery.LeftJoins,
+            Is.EquivalentTo(new[]
+            {
+                "LEFT JOIN \"test_category\" AS \"test_partner.Category\" ON \"test_partner\".\"Category\" = \"test_partner.Category\".\"id\""
+            }));
+
+
+        domainQuery = Query.DomainToQuery(_finalModel,
+            [("Category.Name", "=", "Test"), ("Category.Partners.Name", "like", "Hello")]);
+
+        Assert.That(domainQuery.Where,
+            Is.EqualTo(
+                "((\"test_partner.Category\".\"Name\" = $1) AND (\"test_partner.Category.Partners\".\"Name\" LIKE $2))"));
         Assert.That(domainQuery.Arguments, Is.EquivalentTo(new[] { "Test", "Hello" }));
+        Assert.That(domainQuery.LeftJoins, Is.EquivalentTo(new[]
+        {
+            "LEFT JOIN \"test_category\" AS \"test_partner.Category\" ON \"test_partner\".\"Category\" = \"test_partner.Category\".\"id\"",
+            "LEFT JOIN \"test_partner\" AS \"test_partner.Category.Partners\" ON \"test_partner.Category\".\"id\" = \"test_partner.Category.Partners\".\"Category\"",
+        }));
+
+
+        domainQuery = Query.DomainToQuery(_finalModel,
+            [("Category.Name", "=", "Test"), ("Category", "in", new List<int> { 1, 2, 3 })]);
+
+        Assert.That(domainQuery.Where,
+            Is.EqualTo("((\"test_partner.Category\".\"Name\" = $1) AND (\"test_partner\".\"Category\" IN $2))"));
+        Assert.That(domainQuery.Arguments, Is.EquivalentTo(new List<object>() { "Test", new List<int> { 1, 2, 3 } }));
+        Assert.That(domainQuery.LeftJoins, Is.EquivalentTo(new[]
+        {
+            "LEFT JOIN \"test_category\" AS \"test_partner.Category\" ON \"test_partner\".\"Category\" = \"test_partner.Category\".\"id\"",
+        }));
+
+    }
+
+    [Test]
+    public void TestLeftJoinWithId()
+    {
+        Query.DomainQuery domainQuery = Query.DomainToQuery(_finalModel, [("Category.Name", "=", "Test"), ("Category.Partners.Id", "in", new List<int> { 1, 2, 3 })]);
+        
+        Assert.That(domainQuery.Where, Is.EqualTo("((\"test_partner.Category\".\"Name\" = $1) AND (\"test_partner.Category.Partners\".\"Id\" IN $2))"));
+        Assert.That(domainQuery.Arguments, Is.EquivalentTo(new List<object>() { "Test", new List<int> { 1, 2, 3 } }));
+        Assert.That(domainQuery.LeftJoins, Is.EquivalentTo(new[]
+        {
+            "LEFT JOIN \"test_category\" AS \"test_partner.Category\" ON \"test_partner\".\"Category\" = \"test_partner.Category\".\"id\"",
+            "LEFT JOIN \"test_partner\" AS \"test_partner.Category.Partners\" ON \"test_partner.Category\".\"id\" = \"test_partner.Category.Partners\".\"Category\"",
+        }));
+        
+        // Same as above, but without ".Id" in domain
+        domainQuery = Query.DomainToQuery(_finalModel, [("Category.Name", "=", "Test"), ("Category.Partners", "in", new List<int> { 1, 2, 3 })]);
+        
+        Assert.That(domainQuery.Where, Is.EqualTo("((\"test_partner.Category\".\"Name\" = $1) AND (\"test_partner.Category.Partners\".\"Id\" IN $2))"));
+        Assert.That(domainQuery.Arguments, Is.EquivalentTo(new List<object>() { "Test", new List<int> { 1, 2, 3 } }));
         Assert.That(domainQuery.LeftJoins, Is.EquivalentTo(new[]
         {
             "LEFT JOIN \"test_category\" AS \"test_partner.Category\" ON \"test_partner\".\"Category\" = \"test_partner.Category\".\"id\"",

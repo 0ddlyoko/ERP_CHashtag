@@ -85,7 +85,7 @@ public class TestPluginManager
         Assert.That(testPartnerModels[0].Plugin, Is.EqualTo(_aPlugin));
         Assert.That(testPartnerModels[0].Name, Is.EqualTo("test_partner"));
         Assert.That(testPartnerModels[0].Description, Is.EqualTo("Contact"));
-        Assert.That(testPartnerModels[0].Fields, Has.Count.EqualTo(9));
+        Assert.That(testPartnerModels[0].Fields, Has.Count.EqualTo(10));
         
         // Fields
         Assert.That(testPartnerModels[0].Fields, Contains.Key("Name"));
@@ -178,7 +178,7 @@ public class TestPluginManager
         Assert.That(testPartnerModels[1].Plugin, Is.EqualTo(_aPlugin));
         Assert.That(testPartnerModels[1].Name, Is.EqualTo("test_partner"));
         Assert.That(testPartnerModels[1].Description, Is.EqualTo("Contact :D"));
-        Assert.That(testPartnerModels[1].Fields, Has.Count.EqualTo(4));
+        Assert.That(testPartnerModels[1].Fields, Has.Count.EqualTo(5));
         
         // Fields
         Assert.That(testPartnerModels[1].Fields, Contains.Key("Name"));
@@ -207,7 +207,7 @@ public class TestPluginManager
         Assert.That(testPartnerModels[2].Plugin, Is.EqualTo(_aPlugin));
         Assert.That(testPartnerModels[2].Name, Is.EqualTo("test_partner"));
         Assert.That(testPartnerModels[2].Description, Is.Null);
-        Assert.That(testPartnerModels[2].Fields, Has.Count.EqualTo(4));
+        Assert.That(testPartnerModels[2].Fields, Has.Count.EqualTo(5));
         
         // Fields
         Assert.That(testPartnerModels[2].Fields, Contains.Key("Age"));
@@ -242,7 +242,7 @@ public class TestPluginManager
         Assert.That(testCategoryModels[0].Plugin, Is.EqualTo(_aPlugin));
         Assert.That(testCategoryModels[0].Name, Is.EqualTo("test_category"));
         Assert.That(testCategoryModels[0].Description, Is.EqualTo("Contact Category"));
-        Assert.That(testCategoryModels[0].Fields, Has.Count.EqualTo(4));
+        Assert.That(testCategoryModels[0].Fields, Has.Count.EqualTo(5));
         
         // Fields
         Assert.That(testCategoryModels[0].Fields, Contains.Key("Name"));
@@ -281,7 +281,7 @@ public class TestPluginManager
         Assert.That(partnerModel.FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0]));
         Assert.That(partnerModel.Description, Is.EqualTo("Contact :D"));
         Assert.That(partnerModel.AllOccurences, Has.Count.EqualTo(3));
-        Assert.That(partnerModel.Fields, Has.Count.EqualTo(10));
+        Assert.That(partnerModel.Fields, Has.Count.EqualTo(11));
         
         // TestPartner
         List<FinalField> partnerFields = partnerModel.Fields.Values.ToList();
@@ -382,19 +382,19 @@ public class TestPluginManager
         Assert.That(partnerFields[6].OriginColumnName, Is.Null);
         Assert.That(partnerFields[6].TargetColumnName, Is.Null);
         
-        // 7 & 8 are CreationDate & UpdateDate
-        Assert.That(partnerFields[9].FieldName, Is.EqualTo("Test"));
-        Assert.That(partnerFields[9].FieldType, Is.EqualTo(FieldType.Integer));
-        Assert.That(partnerFields[9].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][1].Fields["Test"]));
-        Assert.That(partnerFields[9].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][2].Fields["Test"]));
-        Assert.That(partnerFields[9].AllOccurences, Has.Count.EqualTo(2));
-        Assert.That(partnerFields[9].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][1].Fields["Test"], _aPlugin.Models["test_partner"][2].Fields["Test"] }));
-        Assert.That(partnerFields[9].Name, Is.EqualTo("Test"));
-        Assert.That(partnerFields[9].Description, Is.EqualTo("Test"));
-        Assert.That(partnerFields[9].DefaultComputedMethod, Is.Not.Null);
-        Assert.That(partnerFields[9].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][2].Fields["Test"].DefaultComputedMethod));
-        Assert.That(partnerFields[9].TreeDependency.IsLeaf, Is.True);
-        Assert.That(partnerFields[9].TreeDependency.Items, Is.Empty);
+        // 7, 8 & 9 are Id, CreationDate, UpdateDate
+        Assert.That(partnerFields[10].FieldName, Is.EqualTo("Test"));
+        Assert.That(partnerFields[10].FieldType, Is.EqualTo(FieldType.Integer));
+        Assert.That(partnerFields[10].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][1].Fields["Test"]));
+        Assert.That(partnerFields[10].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][2].Fields["Test"]));
+        Assert.That(partnerFields[10].AllOccurences, Has.Count.EqualTo(2));
+        Assert.That(partnerFields[10].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][1].Fields["Test"], _aPlugin.Models["test_partner"][2].Fields["Test"] }));
+        Assert.That(partnerFields[10].Name, Is.EqualTo("Test"));
+        Assert.That(partnerFields[10].Description, Is.EqualTo("Test"));
+        Assert.That(partnerFields[10].DefaultComputedMethod, Is.Not.Null);
+        Assert.That(partnerFields[10].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][2].Fields["Test"].DefaultComputedMethod));
+        Assert.That(partnerFields[10].TreeDependency.IsLeaf, Is.True);
+        Assert.That(partnerFields[10].TreeDependency.Items, Is.Empty);
 
         
         FinalModel categoryModel = _pluginManager.GetFinalModel("test_category");
@@ -403,7 +403,7 @@ public class TestPluginManager
         Assert.That(categoryModel.FirstOccurence, Is.EqualTo(_aPlugin.Models["test_category"][0]));
         Assert.That(categoryModel.Description, Is.EqualTo("Contact Category"));
         Assert.That(categoryModel.AllOccurences, Has.Count.EqualTo(1));
-        Assert.That(categoryModel.Fields, Has.Count.EqualTo(4));
+        Assert.That(categoryModel.Fields, Has.Count.EqualTo(5));
         
         // TestCategory
         List<FinalField> categoryFields = categoryModel.Fields.Values.ToList();
