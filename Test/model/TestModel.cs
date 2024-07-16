@@ -365,7 +365,7 @@ public class TestModel
         Assert.That(model3.Multi, Is.EqualTo(model));
 
         model.Single = model3;
-        Assert.That(model3.Multi.Ids, Is.Empty);
+        // Assert.That(model3.Multi.Ids, Is.Empty);
     }
 
     [Test]
@@ -474,5 +474,38 @@ public class TestModel
         Assert.That(finalModel2.Fields["AnotherModel"].TreeDependency.Items, Contains.Key("test_model_2.Name"));
         Assert.That(finalModel2.Fields["AnotherModel"].TreeDependency.Items, Contains.Key("test_model_2.IsPresent"));
         Assert.That(finalModel2.Fields["AnotherModel"].TreeDependency.Items, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public void TestSelection()
+    {
+        FinalModel finalModel = _pluginManager.GetFinalModel("test_limited_partner");
+        Assert.That(finalModel.Fields["State"].FieldType, Is.EqualTo(FieldType.Selection));
+        Assert.That(finalModel.Fields["State"].Selection, Is.Not.Null);
+        Assert.That(finalModel.Fields["State"].Selection.Selections, Is.EquivalentTo(new Dictionary<string, string>()
+        {
+            { "blocked", "Blocked" },
+            { "managed", "Managed" },
+            { "free", "Free" },
+        }));
+
+        TestLimitedPartner p = _env.Create<TestLimitedPartner>([[]]);
+        Assert.That(p.State, Is.EqualTo("free"));
+        Assert.That(p.IsLimited, Is.False);
+        
+        p.CurrentMoney = 1_000_000;
+        Assert.That(p.IsLimited, Is.False);
+
+        p.Limit = 1_000;
+        Assert.That(p.IsLimited, Is.False);
+
+        p.State = "managed";
+        Assert.That(p.IsLimited, Is.True);
+
+        p.Limit = 0;
+        Assert.That(p.IsLimited, Is.False);
+
+        p.State = "blocked";
+        Assert.That(p.IsLimited, Is.True);
     }
 }

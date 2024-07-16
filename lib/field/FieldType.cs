@@ -3,6 +3,7 @@
 public enum FieldType
 {
     String,
+    Selection,
     Integer,
     Float,
     Boolean,

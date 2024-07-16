@@ -22,6 +22,7 @@ public class PluginField
     public readonly string? TargetField;
     public readonly string? OriginColumnName;
     public readonly string? TargetColumnName;
+    public readonly SelectionField? Selection;
 
     public PluginField(PluginModel pluginModel, FieldDefinitionAttribute definition, PropertyInfo propertyInfo, Type classType)
     {
@@ -71,6 +72,18 @@ public class PluginField
                 TargetField = manyToManyAttribute.Target;
                 OriginColumnName = manyToManyAttribute.OriginColumnName;
                 TargetColumnName = manyToManyAttribute.TargetColumnName;
+            }
+        }
+        // Selection
+        var selectionAttributes = propertyInfo.GetCustomAttributes<SelectionAttribute>();
+        var selections = selectionAttributes.ToList();
+        if (selections.Any())
+        {
+            FieldType = FieldType.Selection;
+            Selection = new SelectionField();
+            foreach (var selection in selections)
+            {
+                Selection.Selections[selection.Key] = selection.Value;
             }
         }
     }

@@ -20,6 +20,7 @@ public class TestPlugin: IPlugin
             typeof(TestPartner2),
             typeof(TestPartner3),
             typeof(TestCategory),
+            typeof(TestLimitedPartner),
             typeof(TestMultipleRecompute),
             typeof(TestModel2),
         ];

@@ -9,8 +9,8 @@ namespace Test.plugin;
 [TestFixture]
 public class TestPluginManager
 {
-    private const int TotalNumberOfModels = 4;
-    private const int TotalNumberOfModelOverride = 6;
+    private const int TotalNumberOfModels = 5;
+    private const int TotalNumberOfModelOverride = 7;
     private Assembly _assembly;
     private PluginManager _pluginManager;
     private APlugin _aPlugin;

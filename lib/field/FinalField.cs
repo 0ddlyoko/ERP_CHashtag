@@ -48,6 +48,7 @@ public class FinalField
     public string? TargetField;
     public string? OriginColumnName;
     public string? TargetColumnName;
+    public readonly SelectionField? Selection;
 
     public FinalField(FinalModel finalModel, PluginField firstOccurence)
     {
@@ -62,12 +63,11 @@ public class FinalField
         DefaultComputedMethod = firstOccurence.DefaultComputedMethod;
         if (DefaultComputedMethod?.MethodInfo != null)
             LastOccurenceOfComputedMethod = firstOccurence;
-        if (firstOccurence.TargetField != null)
-            TargetField = firstOccurence.TargetField;
-        if (firstOccurence.OriginColumnName != null)
-            OriginColumnName = firstOccurence.OriginColumnName;
-        if (firstOccurence.TargetColumnName != null)
-            TargetColumnName = firstOccurence.TargetColumnName;
+        TargetField = firstOccurence.TargetField;
+        OriginColumnName = firstOccurence.OriginColumnName;
+        TargetColumnName = firstOccurence.TargetColumnName;
+        Selection = firstOccurence.Selection;
+        
         TreeDependency = new TreeDependency(root: this);
     }
 
@@ -77,8 +77,12 @@ public class FinalField
             throw new InvalidOperationException(
                 $"Field {pluginField} cannot be merged with this field as field name are different! (Got {pluginField.FieldName}, but {FieldName} is expected)");
         if (pluginField.FieldType != FieldType)
-            throw new InvalidOperationException(
-                $"Field {pluginField} cannot be merged with this field as type are different! (Got {pluginField.FieldType}, but {FieldType} is expected)");
+        {
+            if (!(pluginField.FieldType is FieldType.Datetime && FieldType is FieldType.Date
+                 || pluginField.FieldType is FieldType.String && FieldType is FieldType.Selection))
+                throw new InvalidOperationException(
+                    $"Field {pluginField} cannot be merged with this field as type are different! (Got {pluginField.FieldType}, but {FieldType} is expected)");
+        }
         AllOccurences.Add(pluginField);
         if (pluginField.Name != null)
             Name = pluginField.Name;
@@ -99,6 +103,13 @@ public class FinalField
             OriginColumnName = pluginField.OriginColumnName;
         if (pluginField.TargetColumnName != null)
             TargetColumnName = pluginField.TargetColumnName;
+        if (pluginField.Selection != null && Selection != null)
+        {
+            foreach (var (key, value) in pluginField.Selection.Selections)
+            {
+                Selection.Selections[key] = value;
+            }
+        }
     }
 
     public object? GetDefaultValue()
