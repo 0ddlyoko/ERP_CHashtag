@@ -7,24 +7,23 @@ namespace lib.database;
  */
 public class DatabaseConnectionConfig
 {
-    
-    public required string Host;
-    public required string DbName;
-    public required string User;
-    public required string Password;
-    private string Conn => $"Host={Host};Username={User};Password={Password};Database={DbName}";
+    private readonly string _host;
+    private readonly string _dbName;
+    private readonly string _user;
+    private readonly string _password;
+    private string Conn => $"Host={_host};Username={_user};Password={_password};Database={_dbName}";
 
-    public NpgsqlDataSource Database;
+    private readonly NpgsqlDataSource _database;
 
     public DatabaseConnectionConfig(string host, string dbName, string user, string password)
     {
-        Host = host;
-        DbName = dbName;
-        User = user;
-        Password = password;
+        _host = host;
+        _dbName = dbName;
+        _user = user;
+        _password = password;
 
         var datasourceBuilder = new NpgsqlDataSourceBuilder(Conn);
-        Database = datasourceBuilder.Build();
+        _database = datasourceBuilder.Build();
     }
 
     /**
@@ -34,6 +33,6 @@ public class DatabaseConnectionConfig
     public DatabaseConnection Open(Environment env) => new() 
     { 
         Env = env,
-        Connection = Database.OpenConnection(),
+        Connection = _database.OpenConnection(),
     };
 }

@@ -1,12 +1,16 @@
 ﻿using System.Reflection;
 using lib.command;
+using lib.database;
+using lib.field;
 using lib.model;
 using lib.util;
 
 namespace lib.plugin;
 
-public class PluginManager(string pluginPath)
+public class PluginManager(Config config)
 {
+    public readonly Config Config = config;
+    public readonly DatabaseConnectionConfig DatabaseConnectionConfig = new(config.DatabaseHostname, config.DatabaseName, config.DatabaseUser, config.DatabasePassword);
     private readonly Dictionary<string, APlugin> _availablePlugins = new();
     private readonly Dictionary<string, APlugin> _plugins = new();
     private readonly Dictionary<string, ICommand> _commands = new();
@@ -35,11 +39,11 @@ public class PluginManager(string pluginPath)
             throw new InvalidOperationException("Cannot register plugins if plugins are already registered");
         }
 
-        if (pluginPath == null)
+        if (Config.PluginsPath == null)
             throw new InvalidOperationException("Invalid root directory for plugins!");
-        if (!Directory.Exists(pluginPath))
-            throw new InvalidOperationException($"Plugin directory not found! {pluginPath}");
-        var files = Directory.GetFiles(pluginPath, "*.dll");
+        if (!Directory.Exists(Config.PluginsPath))
+            throw new InvalidOperationException($"Plugin directory not found! {Config.PluginsPath}");
+        var files = Directory.GetFiles(Config.PluginsPath, "*.dll");
         // Import files
         foreach (var file in files)
         {
@@ -106,6 +110,18 @@ public class PluginManager(string pluginPath)
     public bool IsPluginInstalled(string pluginName) => _plugins.ContainsKey(pluginName.ToLower());
 
     /**
+     * Load the main plugin.
+     * This should be called before loading all other plugins
+     */
+    public void LoadMain()
+    {
+        var plugin = GetPlugin("main");
+        if (plugin == null)
+            throw new InvalidOperationException("Plugin \"main\" not found. Please check your plugin path");
+        InstallPluginNow(plugin);
+    }
+
+    /**
      * Install given plugin and all his dependencies
      */
     public void InstallPlugin(APlugin plugin)
@@ -141,29 +157,71 @@ public class PluginManager(string pluginPath)
         {
             foreach (var plugin in pluginsToInstall)
             {
-                _plugins[plugin.Id] = plugin;
-                plugin.State = APlugin.PluginState.Installed;
-                try
-                {
-                    // Yeah, we call this method in the for loop.
-                    // We need to do it to be able to install plugins one by one.
-                    // At least, if a plugin is failing to install, other plugins are installed
-                    LoadPlugins();
-                    Environment env = new(this);
-                    plugin.Plugin.OnStart(env);
-                }
-                catch (Exception)
-                {
-                    _plugins.Remove(plugin.Id);
-                    plugin.State = APlugin.PluginState.NotInstalled;
-                    throw;
-                }
+                InstallPluginNow(plugin);
             }
         }
         finally
         {
             // Call it here, as it's possible that the installation fails
             LoadPlugins();
+        }
+    }
+
+    /**
+     * Install given plugin now, without installing other plugins
+     */
+    public async Task InstallPluginNow(APlugin plugin)
+    {
+        if (GetPlugin(plugin.Name) != plugin)
+            throw new InvalidOperationException("This plugin is not registered, or is not the same as given one");
+        if (plugin.State is APlugin.PluginState.ToUninstall)
+            plugin.State = APlugin.PluginState.Installed;
+        if (plugin.State == APlugin.PluginState.Installed)
+            return;
+        
+        // Check if all dependencies are installed
+        foreach (var dependency in plugin.Dependencies)
+        {
+            var dependencyPlugin = GetPlugin(dependency);
+            if (dependencyPlugin == null)
+                throw new InvalidOperationException($"Plugin {plugin.Name} require dependency {dependency}, but this dependency is not available");
+            await InstallPluginNow(dependencyPlugin);
+        }
+        
+        Console.WriteLine($"Installing plugin {plugin.Name}");
+        
+        _plugins[plugin.Id] = plugin;
+        plugin.State = APlugin.PluginState.Installed;
+        try
+        {
+            // Yeah, we call this method in the for loop.
+            // We need to do it to be able to install plugins one by one.
+            // At least, if a plugin is failing to install, other plugins are installed
+            LoadPlugins();
+            Environment env = new(this);
+            plugin.Plugin.OnInstalling(env);
+            // Save models
+            foreach (var (modelName, models) in plugin.Models)
+            {
+                var finalModel = GetFinalModel(modelName);
+                await DatabaseHelper.CreateTable(env.Connection, modelName, finalModel.Description);
+                foreach (var pluginModel in models)
+                {
+                    HashSet<FinalField> fields = [];
+                    foreach (var (fieldName, _) in pluginModel.Fields)
+                        fields.Add(finalModel.Fields[fieldName]);
+                    foreach (var finalField in fields)
+                    {
+                        await DatabaseHelper.CreateColumn(env.Connection, modelName, finalField.FieldName, )
+                    }
+                }
+            }
+        }
+        catch (Exception)
+        {
+            _plugins.Remove(plugin.Id);
+            plugin.State = APlugin.PluginState.NotInstalled;
+            throw;
         }
     }
 

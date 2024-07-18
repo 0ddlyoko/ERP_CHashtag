@@ -18,10 +18,13 @@ internal static class Program
                 return;
             }
             
-            var pluginManager = new PluginManager(parser.Value.PluginsPath);
+            var pluginManager = new PluginManager(parser.Value);
             Console.WriteLine("Registering plugins ...");
             pluginManager.RegisterPlugins();
             Console.WriteLine($"{pluginManager.AvailablePluginsSize} plugins registered!");
+            
+            Console.WriteLine("Loading \"main\", please wait");
+            pluginManager.LoadMain();
             Console.WriteLine($"{pluginManager.PluginsSize} plugins installed!");
             
             Console.WriteLine($"Installing {string.Join(", ", parser.Value.Install)}");

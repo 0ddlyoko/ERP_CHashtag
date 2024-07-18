@@ -8,7 +8,7 @@ public static class DatabaseHelper
     
     public static async Task<int> CreateTable(DatabaseConnection connection, string tableName, string? tableDescription = null)
     {
-        var cmd = CreateRequest(connection, "CREATE TABLE @tableName (id INTEGER PRIMARY KEY); COMMENT ON TABLE @tableName IS @comment", [
+        var cmd = CreateRequest(connection, "CREATE TABLE IF NOT EXISTS @tableName (id INTEGER PRIMARY KEY); COMMENT ON TABLE @tableName IS @comment", [
             new DatabaseParameter("tableName", tableName),
             new DatabaseParameter("comment", tableDescription ?? tableName),
         ]);
@@ -40,7 +40,7 @@ public static class DatabaseHelper
     
     public static async Task<int> CreateColumn(DatabaseConnection connection, string tableName, string columnName, string columnType, string? columnDescription = null, bool required = false, string? defaultValue = null, bool unique = false, List<string>? references = null)
     {
-        var request = "ALTER TABLE @tableName ADD COLUMN @columnName @columnType";
+        var request = "ALTER TABLE @tableName ADD COLUMN IF NOT EXISTS @columnName @columnType";
         List<DatabaseParameter> parameters =
         [
             new DatabaseParameter("tableName", tableName),

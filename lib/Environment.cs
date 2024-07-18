@@ -1,4 +1,5 @@
 ﻿using lib.cache;
+using lib.database;
 using lib.field;
 using lib.model;
 using lib.plugin;
@@ -9,13 +10,15 @@ public class Environment
 {
     public readonly PluginManager PluginManager;
     public readonly Cache Cache;
+    public readonly DatabaseConnection Connection;
     // TODO Remove next line
     private int _id = 1;
 
-    public Environment(PluginManager pluginManager)
+    public Environment(PluginManager pluginManager, DatabaseConnection? connection = null)
     {
         PluginManager = pluginManager;
         Cache = new Cache(this);
+        Connection = connection ?? pluginManager.DatabaseConnectionConfig.Open(this);
     }
 
     /**
