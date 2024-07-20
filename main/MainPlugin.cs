@@ -13,6 +13,7 @@ public class MainPlugin: IPlugin
     public List<Type> GetModels()
     {
         return [
+            typeof(Module),
             typeof(Partner),
             typeof(Partner2),
             typeof(Partner3),

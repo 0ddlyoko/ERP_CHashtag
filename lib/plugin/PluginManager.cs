@@ -10,7 +10,7 @@ namespace lib.plugin;
 public class PluginManager(Config config)
 {
     public readonly Config Config = config;
-    public readonly DatabaseConnectionConfig DatabaseConnectionConfig = new(config.DatabaseHostname, config.DatabaseName, config.DatabaseUser, config.DatabasePassword);
+    public readonly DatabaseConnectionConfig DatabaseConnectionConfig = new(config.DatabaseHostname, config.DatabasePort, config.DatabaseName, config.DatabaseUser, config.DatabasePassword);
     private readonly Dictionary<string, APlugin> _availablePlugins = new();
     private readonly Dictionary<string, APlugin> _plugins = new();
     private readonly Dictionary<string, ICommand> _commands = new();
@@ -113,18 +113,18 @@ public class PluginManager(Config config)
      * Load the main plugin.
      * This should be called before loading all other plugins
      */
-    public void LoadMain()
+    public async Task LoadMain()
     {
         var plugin = GetPlugin("main");
         if (plugin == null)
             throw new InvalidOperationException("Plugin \"main\" not found. Please check your plugin path");
-        InstallPluginNow(plugin);
+        await InstallPluginNow(plugin);
     }
 
     /**
      * Install given plugin and all his dependencies
      */
-    public void InstallPlugin(APlugin plugin)
+    public async void InstallPlugin(APlugin plugin)
     {
         if (GetPlugin(plugin.Name) != plugin)
             throw new InvalidOperationException("This plugin is not registered, or is not the same as given one");
@@ -146,10 +146,10 @@ public class PluginManager(Config config)
             }
             throw;
         }
-        InstallNeededPlugins();
+        await InstallNeededPlugins();
     }
 
-    public void InstallNeededPlugins()
+    public async Task InstallNeededPlugins()
     {
         var pluginsToInstall = AvailablePlugins.Where(pl => pl.State == APlugin.PluginState.ToInstall).ToList();
         Console.WriteLine($"Installing {pluginsToInstall.Count} plugins");
@@ -157,7 +157,7 @@ public class PluginManager(Config config)
         {
             foreach (var plugin in pluginsToInstall)
             {
-                InstallPluginNow(plugin);
+                await InstallPluginNow(plugin);
             }
         }
         finally
@@ -189,7 +189,6 @@ public class PluginManager(Config config)
         }
         
         Console.WriteLine($"Installing plugin {plugin.Name}");
-        
         _plugins[plugin.Id] = plugin;
         plugin.State = APlugin.PluginState.Installed;
         try
@@ -208,14 +207,26 @@ public class PluginManager(Config config)
                 foreach (var pluginModel in models)
                 {
                     HashSet<FinalField> fields = [];
-                    foreach (var (fieldName, _) in pluginModel.Fields)
-                        fields.Add(finalModel.Fields[fieldName]);
+                    foreach (var (fieldName, field) in pluginModel.Fields)
+                    {
+                        if (field.FieldName != "Id" && field.FieldType is not FieldType.OneToMany and not FieldType.ManyToMany)
+                            fields.Add(finalModel.Fields[fieldName]);
+                    }
                     foreach (var finalField in fields)
                     {
-                        await DatabaseHelper.CreateColumn(env.Connection, modelName, finalField.FieldName, )
+                        await DatabaseHelper.CreateColumn(
+                            connection: env.Connection,
+                            tableName: modelName,
+                            columnName: finalField.FieldName,
+                            columnType: DatabaseHelper.FieldTypeToString(finalField.FieldType),
+                            required: false,
+                            targetTableName: finalField.TargetFinalModel?.Name,
+                            targetColumnName: finalField.TargetFinalField?.FieldName
+                        );
                     }
                 }
             }
+            Console.WriteLine($"Plugin installed using {env.Connection.NumberOfRequests} requests");
         }
         catch (Exception)
         {

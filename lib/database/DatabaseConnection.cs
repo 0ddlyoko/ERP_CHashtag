@@ -28,7 +28,7 @@ public class DatabaseConnection
 
     private NpgsqlCommand _makeNpgsqlCommand(string request, List<DatabaseParameter>? parameters = null)
     {
-        var npgsqlCommand = new NpgsqlCommand(request);
+        var npgsqlCommand = new NpgsqlCommand(request, Connection);
         if (parameters != null)
         {
             foreach (var parameter in parameters)

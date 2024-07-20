@@ -8,16 +8,18 @@ namespace lib.database;
 public class DatabaseConnectionConfig
 {
     private readonly string _host;
+    private readonly int _port;
     private readonly string _dbName;
     private readonly string _user;
     private readonly string _password;
-    private string Conn => $"Host={_host};Username={_user};Password={_password};Database={_dbName}";
+    private string Conn => $"Host={_host};Port={_port};Username={_user};Password={_password};Database={_dbName}";
 
     private readonly NpgsqlDataSource _database;
 
-    public DatabaseConnectionConfig(string host, string dbName, string user, string password)
+    public DatabaseConnectionConfig(string host, int port, string dbName, string user, string password)
     {
         _host = host;
+        _port = port;
         _dbName = dbName;
         _user = user;
         _password = password;

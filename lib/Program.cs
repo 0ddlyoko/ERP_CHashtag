@@ -7,16 +7,13 @@ namespace lib;
 
 internal static class Program
 {
-    private static void Main(string[] args)
+    private static async Task Main(string[] args)
     {
         try
         {
             var parser = Parser.Default.ParseArguments<Config>(args);
-            
             if (parser.Tag == ParserResultType.NotParsed)
-            {
                 return;
-            }
             
             var pluginManager = new PluginManager(parser.Value);
             Console.WriteLine("Registering plugins ...");
@@ -24,7 +21,7 @@ internal static class Program
             Console.WriteLine($"{pluginManager.AvailablePluginsSize} plugins registered!");
             
             Console.WriteLine("Loading \"main\", please wait");
-            pluginManager.LoadMain();
+            await pluginManager.LoadMain();
             Console.WriteLine($"{pluginManager.PluginsSize} plugins installed!");
             
             Console.WriteLine($"Installing {string.Join(", ", parser.Value.Install)}");
@@ -39,7 +36,7 @@ internal static class Program
             
                 pluginManager.SetPluginToInstall(plugin);
             }
-            pluginManager.InstallNeededPlugins();
+            await pluginManager.InstallNeededPlugins();
             Console.WriteLine($"We have {pluginManager.PluginsSize} installed plugins");
             Console.WriteLine($"We have {pluginManager.CommandsSize} installed commands");
             Console.WriteLine($"We have {pluginManager.ModelsSize} installed models, with a total of {pluginManager.TotalModelsSize} override");

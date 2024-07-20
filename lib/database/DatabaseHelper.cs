@@ -1,3 +1,4 @@
+using lib.field;
 using Npgsql;
 
 namespace lib.database;
@@ -6,138 +7,55 @@ public static class DatabaseHelper
 {
     #region Tables
     
-    public static async Task<int> CreateTable(DatabaseConnection connection, string tableName, string? tableDescription = null)
+    public static async Task CreateTable(DatabaseConnection connection, string tableName, string? tableDescription = null)
     {
-        var cmd = CreateRequest(connection, "CREATE TABLE IF NOT EXISTS @tableName (id INTEGER PRIMARY KEY); COMMENT ON TABLE @tableName IS @comment", [
-            new DatabaseParameter("tableName", tableName),
-            new DatabaseParameter("comment", tableDescription ?? tableName),
-        ]);
-        return await cmd.ExecuteNonQueryAsync();
+        await CreateRequest(connection, $"CREATE TABLE IF NOT EXISTS {tableName} (id INTEGER PRIMARY KEY)").ExecuteNonQueryAsync();
+        await CreateRequest(connection, $"COMMENT ON TABLE {tableName} IS '{tableDescription ?? tableName}'").ExecuteNonQueryAsync();
     }
 
-    public static async Task<int> RenameTable(DatabaseConnection connection, string oldTableName, string newTableName,
+    public static async Task RenameTable(DatabaseConnection connection, string oldTableName, string newTableName,
         string? tableDescription = null)
     {
-        var cmd = CreateRequest(connection, "ALTER TABLE @oldTableName RENAME TO @newTableName; COMMENT ON TABLE @tableName IS @comment", [
-            new DatabaseParameter("oldTableName", oldTableName),
-            new DatabaseParameter("newTableName", newTableName),
-            new DatabaseParameter("comment", tableDescription ?? newTableName),
-        ]);
-        return await cmd.ExecuteNonQueryAsync();
+        await CreateRequest(connection, $"ALTER TABLE {oldTableName} RENAME TO {newTableName}").ExecuteNonQueryAsync();
+        await CreateRequest(connection, $"COMMENT ON TABLE {newTableName} IS '{tableDescription ?? newTableName}'").ExecuteNonQueryAsync();
     }
 
-    public static async Task<int> DropTable(DatabaseConnection connection, string tableName)
+    public static async Task DropTable(DatabaseConnection connection, string tableName)
     {
-        var cmd = CreateRequest(connection, "DROP TABLE @tableName", [
-            new DatabaseParameter("tableName", tableName),
-        ]);
-        return await cmd.ExecuteNonQueryAsync();
+        await CreateRequest(connection, $"DROP TABLE {tableName}").ExecuteNonQueryAsync();
     }
 
     #endregion
 
     #region Columns
     
-    public static async Task<int> CreateColumn(DatabaseConnection connection, string tableName, string columnName, string columnType, string? columnDescription = null, bool required = false, string? defaultValue = null, bool unique = false, List<string>? references = null)
+    public static async Task CreateColumn(DatabaseConnection connection, string tableName, string columnName, string columnType, string? columnDescription = null, bool? required = null, string? targetTableName = null, string? targetColumnName = null)
     {
-        var request = "ALTER TABLE @tableName ADD COLUMN IF NOT EXISTS @columnName @columnType";
-        List<DatabaseParameter> parameters =
-        [
-            new DatabaseParameter("tableName", tableName),
-            new DatabaseParameter("columnName", columnName),
-            new DatabaseParameter("columnType", columnType),
-            new DatabaseParameter("comment", columnDescription ?? columnName),
-        ];
-        // TODO Check for other type
-        if (columnType == "timestamp")
-            request += " WITH TIME ZONE";
-        if (required)
-            request += " NOT NULL";
-        if (defaultValue != null)
-            request += $" DEFAULT {defaultValue}";
-        if (unique)
-            request += $" UNIQUE idx_uniq_{tableName}_{columnName}";
-        foreach (var reference in references ?? [])
-            request += $" REFERENCE {reference}";
-
-
-        request += "; COMMENT ON COLUMN @tableName.@columnName IS @comment";
+        await CreateRequest(connection, $"ALTER TABLE {tableName} ADD COLUMN IF NOT EXISTS {columnName} {columnType}").ExecuteNonQueryAsync();
         
-        var cmd = CreateRequest(connection, request, parameters);
-        return await cmd.ExecuteNonQueryAsync();
+        await CreateRequest(connection, $"COMMENT ON COLUMN {tableName}.{columnName} IS '{columnDescription ?? columnName}'").ExecuteNonQueryAsync();
+
+        if (required != null)
+        {
+            await CreateRequest(connection, $"ALTER TABLE {tableName} ALTER COLUMN {columnName} {((bool)required ? "SET" : "DROP")} NOT NULL").ExecuteNonQueryAsync();
+        }
+
+        if (targetTableName != null && targetColumnName != null)
+        {
+            var constraintName = $"{tableName}_{columnName}_fkey";
+            await CreateRequest(connection, $"ALTER TABLE {tableName} ADD CONSTRAINT {constraintName} FOREIGN KEY ({columnName}) REFERENCES {targetTableName} ({targetColumnName})").ExecuteNonQueryAsync();
+        }
     }
 
-    public static async Task<int> RenameColumn(DatabaseConnection connection, string tableName, string oldColumnName, string newColumnName, string? columnDescription = null)
+    public static async Task RenameColumn(DatabaseConnection connection, string tableName, string oldColumnName, string newColumnName, string? columnDescription = null)
     {
-        var cmd = CreateRequest(connection, "ALTER TABLE @tableName RENAME COLUMN @oldColumnName TO @newColumnName; COMMENT ON COLUMN @tableName.@newColumnName IS @comment", [
-            new DatabaseParameter("tableName", tableName),
-            new DatabaseParameter("oldColumnName", oldColumnName),
-            new DatabaseParameter("newColumnName", newColumnName),
-            new DatabaseParameter("comment", columnDescription ?? newColumnName),
-        ]);
-        return await cmd.ExecuteNonQueryAsync();
+        await CreateRequest(connection, $"ALTER TABLE {tableName} RENAME COLUMN {oldColumnName} TO {newColumnName}").ExecuteNonQueryAsync();
+        await CreateRequest(connection, $"COMMENT ON COLUMN {tableName}.{newColumnName} IS '{columnDescription ?? newColumnName}'").ExecuteNonQueryAsync();
     }
 
-    public static async Task<int> AlterColumn(DatabaseConnection connection, string tableName, string columnName,
-        bool? required = null, bool dropDefault = false, string? defaultValue = null, string? columnDescription = null,
-        List<string>? constraintsToAdd = null, List<string>? constraintsToRemove = null)
+    public static async Task DropColumn(DatabaseConnection connection, string tableName, string columnName)
     {
-        var request = "ALTER TABLE @tableName";
-        List<DatabaseParameter> parameters =
-        [
-            new DatabaseParameter("tableName", tableName),
-            new DatabaseParameter("columnName", columnName),
-        ];
-        List<string> alters = [];
-        if (required == true)
-            alters.Add("SET NOT NULL");
-        if (required == false)
-            alters.Add("DROP NOT NULL");
-        if (defaultValue != null)
-            alters.Add($"DEFAULT {defaultValue}");
-        if (dropDefault)
-            alters.Add("DROP DEFAULT");
-
-        foreach (var alter in alters)
-        {
-            request += $" ALTER COLUMN @columnName {alter},";
-        }
-
-        if (request.Last() == ',')
-            request = request.Remove(request.Length - 1, 1);
-
-        if (columnDescription != null)
-        {
-            request += "; COMMENT ON COLUMN @tableName.@columnName IS @comment";
-            parameters.Add(new DatabaseParameter("comment", columnDescription));
-        }
-
-        if (constraintsToRemove != null)
-        {
-            foreach (var constraintToRemove in constraintsToRemove)
-            {
-                request += $"; ALTER TABLE @tableName DROP CONSTRAINT {constraintToRemove}";
-            }
-        }
-
-        if (constraintsToAdd != null)
-        {
-            foreach (var constraintToAdd in constraintsToAdd)
-            {
-                request += $"; ALTER TABLE @tableName ADD CONSTRAINT {constraintToAdd}";
-            }
-        }
-        var cmd = CreateRequest(connection, request, parameters);
-        return await cmd.ExecuteNonQueryAsync();
-    }
-
-    public static async Task<int> DropColumn(DatabaseConnection connection, string tableName, string columnName)
-    {
-        var cmd = CreateRequest(connection, "ALTER TABLE @tableName DROP COLUMN @columnName", [
-            new DatabaseParameter("tableName", tableName),
-            new DatabaseParameter("columnName", columnName),
-        ]);
-        return await cmd.ExecuteNonQueryAsync();
+        await CreateRequest(connection, $"ALTER TABLE {tableName} DROP COLUMN {columnName}").ExecuteNonQueryAsync();
     }
 
     #endregion
@@ -150,4 +68,19 @@ public static class DatabaseHelper
     }
 
     #endregion
+
+    public static string FieldTypeToString(FieldType type) => type switch
+    {
+        FieldType.String => "character",
+        FieldType.Selection => "character",
+        FieldType.Integer => "integer",
+        FieldType.Float => "double precision",
+        FieldType.Boolean => "boolean",
+        FieldType.Date => "timestamp WITH TIME ZONE",
+        FieldType.Datetime => "timestamp WITH TIME ZONE",
+        FieldType.ManyToOne => "integer",
+        FieldType.OneToMany => throw new InvalidOperationException("OneToMany cannot be transformed into a valid SQL type"),
+        FieldType.ManyToMany => throw new InvalidOperationException("ManyToMany cannot be transformed into a valid SQL type"),
+        _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+    };
 }
