@@ -20,7 +20,7 @@ public class TestPluginManager
     public void Setup()
     {
         _assembly = typeof(TestPluginManager).Assembly;
-        _pluginManager = new("");
+        // _pluginManager = new("");
         _pluginManager.RegisterPlugin(_assembly);
         _aPlugin = _pluginManager.AvailablePlugins.First();
         _plugin = _aPlugin.Plugin as TestPlugin;

@@ -118,7 +118,18 @@ public class PluginManager(Config config)
         var plugin = GetPlugin("main");
         if (plugin == null)
             throw new InvalidOperationException("Plugin \"main\" not found. Please check your plugin path");
-        await InstallPluginNow(plugin);
+        // Install "main" plugin only if needed
+        // TODO Make a request to the database to see if this module is installed
+        bool isInstalled = false;
+
+        if (isInstalled)
+        {
+            
+        }
+        else
+        {
+            await InstallPluginNow(plugin);
+        }
     }
 
     /**
@@ -177,14 +188,13 @@ public class PluginManager(Config config)
         
         Console.WriteLine($"Installing plugin {plugin.Name}");
         _plugins[plugin.Id] = plugin;
-        plugin.State = APlugin.PluginState.Installed;
+        // Yeah, we call this method in the for loop.
+        // We need to do it to be able to install plugins one by one.
+        // At least, if a plugin is failing to install, other plugins are installed
+        LoadPlugins();
+        Environment env = new(this);
         try
         {
-            // Yeah, we call this method in the for loop.
-            // We need to do it to be able to install plugins one by one.
-            // At least, if a plugin is failing to install, other plugins are installed
-            LoadPlugins();
-            Environment env = new(this);
             plugin.Plugin.OnInstalling(env);
             // Save models
             foreach (var (modelName, models) in plugin.Models)
@@ -213,12 +223,14 @@ public class PluginManager(Config config)
                     }
                 }
             }
+            plugin.State = APlugin.PluginState.Installed;
             Console.WriteLine($"Plugin installed using {env.Connection.NumberOfRequests} requests");
         }
         catch (Exception)
         {
             _plugins.Remove(plugin.Id);
             plugin.State = APlugin.PluginState.NotInstalled;
+            Console.WriteLine($"Error while installing plugin! Took {env.Connection.NumberOfRequests} requests");
             throw;
         }
     }

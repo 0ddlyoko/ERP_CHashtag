@@ -22,7 +22,7 @@ public class TestModel
     public void Setup()
     {
         _assembly = typeof(TestModel).Assembly;
-        _pluginManager = new("");
+        // _pluginManager = new("");
         _pluginManager.RegisterPlugin(_assembly);
         _aPlugin = _pluginManager.AvailablePlugins.First();
         _pluginManager.InstallPlugin(_aPlugin);

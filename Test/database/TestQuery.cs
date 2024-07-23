@@ -1,11 +1,7 @@
 using System.Reflection;
-using lib;
-using lib.cache;
 using lib.database;
-using lib.field;
 using lib.model;
 using lib.plugin;
-using Test.data.models;
 using Environment = lib.Environment;
 
 namespace Test.database;
@@ -24,7 +20,7 @@ public class TestQuery
     public void Setup()
     {
         _assembly = typeof(TestQuery).Assembly;
-        _pluginManager = new("");
+        // _pluginManager = new("");
         _pluginManager.RegisterPlugin(_assembly);
         _aPlugin = _pluginManager.AvailablePlugins.First();
         _pluginManager.InstallPlugin(_aPlugin);
