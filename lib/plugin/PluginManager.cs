@@ -132,20 +132,7 @@ public class PluginManager(Config config)
             plugin.State = APlugin.PluginState.Installed;
         if (plugin.State == APlugin.PluginState.Installed)
             return;
-        try
-        {
-            SetPluginToInstall(plugin);
-        }
-        catch (Exception)
-        {
-            // Exception while setting plugins and dependencies as installing.
-            // This means a dependency was not found. Roll back all "To Install" plugins
-            foreach (var pl in AvailablePlugins.Where(pl => pl.State == APlugin.PluginState.ToInstall))
-            {
-                pl.State = APlugin.PluginState.NotInstalled;
-            }
-            throw;
-        }
+        SetPluginToInstall(plugin);
         await InstallNeededPlugins();
     }
 
@@ -237,22 +224,14 @@ public class PluginManager(Config config)
     }
 
     /**
-     * Mark given plugin to install, and all his dependencies
+     * Mark given plugin to install, but do not mark all his dependencies as to install.
+     * When installing this plugin, dependencies will also be installed, so this is useless to put them as "to install"
      */
     public void SetPluginToInstall(APlugin plugin)
     {
         if (plugin.State != APlugin.PluginState.NotInstalled)
             return;
         plugin.State = APlugin.PluginState.ToInstall;
-        foreach (string dependency in plugin.Dependencies)
-        {
-            APlugin? dependencyPlugin = GetPlugin(dependency);
-            if (dependencyPlugin == null)
-                throw new InvalidOperationException($"Plugin {dependencyPlugin} not found!");
-            if (dependencyPlugin.State is APlugin.PluginState.Installed or APlugin.PluginState.ToInstall)
-                continue;
-            SetPluginToInstall(dependencyPlugin);
-        }
     }
 
     public void UninstallPlugin(APlugin plugin)
