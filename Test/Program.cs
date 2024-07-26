@@ -15,15 +15,12 @@ internal static class Program
         
         // prepare the engine
         ITestEngine engine = TestEngineActivator.CreateInstance();
-        var _filterService = engine.Services.GetService<ITestFilterService>();
-        ITestFilterBuilder builder = _filterService.GetTestFilterBuilder();
-        TestFilter emptyFilter = builder.GetFilter();
         
         using (ITestRunner runner = engine.GetRunner(package))
         {
             // execute the tests
-            XmlNode result = runner.Run(null, emptyFilter);
-            Console.WriteLine(result);
+            XmlNode result = runner.Run(new DefaultTestEventListener(), TestFilter.Empty);
+            Console.WriteLine($"{result.Name} - {result.InnerXml}");
         }
     }
     
