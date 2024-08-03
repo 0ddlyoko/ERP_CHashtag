@@ -23,10 +23,25 @@ internal static class Program
             Console.WriteLine($"{result.Name} - {result.InnerXml}");
         }
     }
+
+    public class GenericTest
+    {
+        [SetUp]
+        public void GenericSetUp()
+        {
+            Console.WriteLine($"WE ARE IN GenericSetUp");
+        }
+    }
     
     [TestFixture]
-    public class MyTests
+    public class MyTests: GenericTest
     {
+        [SetUp]
+        public void SetUp()
+        {
+            Console.WriteLine($"WE ARE IN MyTests");
+        }
+        
         [Test]
         public void TestA()
         {
