@@ -2,20 +2,19 @@ namespace Test.util;
 
 using lib.util;
 
-[TestFixture]
 public class DependencyGraphTests
 {
-    [Test]
+    [Fact]
     public void GetOrderedGraph_NoDependencies_ReturnsSingleNodeFirst()
     {
         var dependencies = new Dictionary<string, string[]>();
         
         var result = DependencyGraph.GetOrderedGraph(dependencies);
         
-        Assert.That(result, Has.Count.EqualTo(0));
+        Assert.Empty(result);
     }
 
-    [Test]
+    [Fact]
     public void GetOrderedGraph_SingleDependency_ReturnsDependentNodeFirst()
     {
         var dependencies = new Dictionary<string, string[]>
@@ -25,12 +24,12 @@ public class DependencyGraphTests
         
         var result = DependencyGraph.GetOrderedGraph(dependencies);
 
-        Assert.That(result, Has.Count.EqualTo(2));
-        Assert.That(result[0], Is.EqualTo("B"));
-        Assert.That(result[1], Is.EqualTo("A"));
+        Assert.Equal(2, result.Count);
+        Assert.Equal("B", result[0]);
+        Assert.Equal("A", result[1]);
     }
 
-    [Test]
+    [Fact]
     public void GetOrderedGraph_CircularDependency_ThrowsException()
     {
         var dependencies = new Dictionary<string, string[]>
@@ -42,7 +41,7 @@ public class DependencyGraphTests
         Assert.Throws<DependencyGraph.CircularDependencyException>(() => DependencyGraph.GetOrderedGraph(dependencies));
     }
 
-    [Test]
+    [Fact]
     public void GetOrderedGraph_ComplexDependencies_ReturnsOrderedGraph()
     {
         var dependencies = new Dictionary<string, string[]>
@@ -56,11 +55,11 @@ public class DependencyGraphTests
         
         var result = DependencyGraph.GetOrderedGraph(dependencies);
 
-        Assert.That(result, Has.Count.EqualTo(5));
-        Assert.That(result, Is.EquivalentTo(new[] { "C", "E", "D", "B", "A" }));
+        Assert.Equal(5, result.Count);
+        Assert.Equivalent(new[] { "C", "E", "D", "B", "A" }, result);
     }
     
-    [Test]
+    [Fact]
     public void GetOrderedGraph_ImbricatedDependencies_ReturnsOrderedGraph()
     {
         var dependencies = new Dictionary<string, string[]>
@@ -74,10 +73,10 @@ public class DependencyGraphTests
         
         var result = DependencyGraph.GetOrderedGraph(dependencies);
 
-        Assert.That(result, Is.EquivalentTo(new[] { "E", "D", "B", "C", "A" }));
+        Assert.Equivalent(new[] { "E", "D", "B", "C", "A" }, result);
     }
 
-    [Test]
+    [Fact]
     public void GetOrderedGraph_NodesWithoutDependencies_ReturnsNodesFirst()
     {
         var dependencies = new Dictionary<string, string[]>
@@ -91,10 +90,10 @@ public class DependencyGraphTests
         
         var result = DependencyGraph.GetOrderedGraph(dependencies);
 
-        Assert.That(result, Is.EquivalentTo(new[] { "A", "B", "C", "E", "D" }));
+        Assert.Equivalent(new[] { "A", "B", "C", "E", "D" }, result);
     }
 
-    [Test]
+    [Fact]
     public void GetOrderedGraph_LargeNumberOfNodes_ReturnsOrderedGraph()
     {
         var dependencies = new Dictionary<string, string[]>();
@@ -113,12 +112,12 @@ public class DependencyGraphTests
         
         var result = DependencyGraph.GetOrderedGraph(dependencies);
 
-        Assert.That(result.Count, Is.EqualTo(26)); // Assuming we have 26 nodes from A to Z
-        Assert.That(result[0], Is.EqualTo("A")); // A should be the first node
-        Assert.That(result[25], Is.EqualTo("Z")); // Z should be the last node
+        Assert.Equal(26, result.Count); // Assuming we have 26 nodes from A to Z
+        Assert.Equal("A", result[0]); // A should be the first node
+        Assert.Equal("Z", result[25]); // Z should be the last node
     }
 
-    [Test]
+    [Fact]
     public void GetOrderedGraph_RepeatedDependencies_ReturnsOrderedGraph()
     {
         var dependencies = new Dictionary<string, string[]>
@@ -130,10 +129,10 @@ public class DependencyGraphTests
 
         var result = DependencyGraph.GetOrderedGraph(dependencies);
 
-        Assert.That(result, Is.EquivalentTo(new[] { "C", "B", "A" }));
+        Assert.Equivalent(new[] { "C", "B", "A" }, result);
     }
 
-    [Test]
+    [Fact]
     public void GetOrderedGraph_MissingNodes_ReturnsOrderedGraph()
     {
         var dependencies = new Dictionary<string, string[]>
@@ -145,6 +144,6 @@ public class DependencyGraphTests
 
         var result = DependencyGraph.GetOrderedGraph(dependencies);
 
-        Assert.That(result, Is.EquivalentTo(new[] { "C", "B", "A", "E", "D" }));
+        Assert.Equivalent(new[] { "C", "B", "A", "E", "D" }, result);
     }
 }

@@ -6,7 +6,6 @@ using Test.data.models;
 
 namespace Test.plugin;
 
-[TestFixture]
 public class TestPluginManager
 {
     private const int TotalNumberOfModels = 5;
@@ -16,8 +15,7 @@ public class TestPluginManager
     private APlugin _aPlugin;
     private TestPlugin _plugin; 
     
-    [SetUp]
-    public void Setup()
+    public TestPluginManager()
     {
         _assembly = typeof(TestPluginManager).Assembly;
         // _pluginManager = new("");
@@ -26,413 +24,422 @@ public class TestPluginManager
         _plugin = _aPlugin.Plugin as TestPlugin;
     }
 
-    [Test]
+    [Fact]
     public void TestPluginLoaded()
     {
-        Assert.That(_pluginManager.AvailablePluginsSize, Is.EqualTo(1), "Only test plugin should be available");
-        Assert.That(_aPlugin.Id, Is.EqualTo(_plugin.Id));
-        Assert.That(_aPlugin.Name, Is.EqualTo(_plugin.Name));
-        Assert.That(_aPlugin.Version, Is.EqualTo(_plugin.Version));
-        Assert.That(_aPlugin.Dependencies, Is.Empty);
-        Assert.That(_aPlugin.Models, Has.Count.EqualTo(TotalNumberOfModels));
-        Assert.That(_aPlugin.IsInstalled, Is.False);
-        Assert.That(_aPlugin.State, Is.EqualTo(APlugin.PluginState.NotInstalled));
-        Assert.That(_plugin.NumberOfOnStart, Is.EqualTo(0));
-        Assert.That(_plugin.NumberOfOnEnd, Is.EqualTo(0));
+        Assert.Equal(1, _pluginManager.AvailablePluginsSize);
+        Assert.Equal(_plugin.Id, _aPlugin.Id);
+        Assert.Equal(_plugin.Name, _aPlugin.Name);
+        Assert.Equal(_plugin.Version, _aPlugin.Version);
+        Assert.Empty(_aPlugin.Dependencies);
+        Assert.Equal(TotalNumberOfModels, _aPlugin.Models.Count);
+        Assert.False(_aPlugin.IsInstalled);
+        Assert.Equal(APlugin.PluginState.NotInstalled, _aPlugin.State);
+        Assert.Equal(0, _plugin.NumberOfOnStart);
+        Assert.Equal(0, _plugin.NumberOfOnEnd);
         
         // Plugin is not installed
-        Assert.That(_pluginManager.PluginsSize, Is.EqualTo(0), "Test plugin is not installed");
-        Assert.That(_pluginManager.CommandsSize, Is.EqualTo(0), "Test plugin is not installed");
-        Assert.That(_pluginManager.ModelsSize, Is.EqualTo(0), "Test plugin is not installed");
-        Assert.That(_pluginManager.TotalModelsSize, Is.EqualTo(0), "Test plugin is not installed");
-        Assert.That(_pluginManager.GetInstalledPlugin("test"), Is.Null);
-        Assert.That(_pluginManager.IsPluginInstalled("test"), Is.False);
+        Assert.Equal(0, _pluginManager.PluginsSize);
+        Assert.Equal(0, _pluginManager.CommandsSize);
+        Assert.Equal(0, _pluginManager.ModelsSize);
+        Assert.Equal(0, _pluginManager.TotalModelsSize);
+        Assert.Null(_pluginManager.GetInstalledPlugin("test"));
+        Assert.False(_pluginManager.IsPluginInstalled("test"));
 
         // Install plugin
         _pluginManager.InstallPlugin(_aPlugin);
         
         // Plugin is installed
-        Assert.That(_aPlugin.IsInstalled, Is.True);
-        Assert.That(_aPlugin.State, Is.EqualTo(APlugin.PluginState.Installed));
-        Assert.That(_plugin.NumberOfOnStart, Is.EqualTo(1));
-        Assert.That(_plugin.NumberOfOnEnd, Is.EqualTo(0));
+        Assert.True(_aPlugin.IsInstalled);
+        Assert.Equal(APlugin.PluginState.Installed, _aPlugin.State);
+        Assert.Equal(1, _plugin.NumberOfOnStart);
+        Assert.Equal(0, _plugin.NumberOfOnEnd);
         
-        Assert.That(_pluginManager.PluginsSize, Is.EqualTo(1), "Test plugin is installed");
-        Assert.That(_pluginManager.CommandsSize, Is.EqualTo(0), "Test plugin is installed");
-        Assert.That(_pluginManager.ModelsSize, Is.EqualTo(TotalNumberOfModels), $"Test plugin is installed, and has {TotalNumberOfModels} models");
-        Assert.That(_pluginManager.TotalModelsSize, Is.EqualTo(TotalNumberOfModelOverride), $"Test plugin is installed, and has {TotalNumberOfModelOverride} models override");
-        Assert.That(_pluginManager.GetInstalledPlugin("test"), Is.EqualTo(_aPlugin));
-        Assert.That(_pluginManager.IsPluginInstalled("test"), Is.True);
+        Assert.Equal(1, _pluginManager.PluginsSize);
+        Assert.Equal(0, _pluginManager.CommandsSize);
+        Assert.Equal(TotalNumberOfModels, _pluginManager.ModelsSize);
+        Assert.Equal(TotalNumberOfModelOverride, _pluginManager.TotalModelsSize);
+        Assert.Equal(_aPlugin, _pluginManager.GetInstalledPlugin("test"));
+        Assert.True(_pluginManager.IsPluginInstalled("test"));
         
-        Assert.That(_pluginManager.GetPlugin("test"), Is.EqualTo(_aPlugin));
+        Assert.Equal(_aPlugin, _pluginManager.GetPlugin("test"));
 
-        Assert.That(_pluginManager.PluginsInDependencyOrder, Is.EquivalentTo(new[] { _aPlugin }));
+        Assert.Equivalent(new[] { _aPlugin }, _pluginManager.PluginsInDependencyOrder);
     }
 
-    [Test]
+    [Fact]
     public void TestPluginModels()
     {
-        Assert.That(_aPlugin.Models, Has.Count.EqualTo(TotalNumberOfModels));
-        Assert.That(_aPlugin.Models, Contains.Key("test_partner"));
-        Assert.That(_aPlugin.Models, Contains.Key("test_category"));
+        Assert.Equal(TotalNumberOfModels, _aPlugin.Models.Count);
+        Assert.Contains("test_partner", _aPlugin.Models.Keys);
+        Assert.Contains("test_category", _aPlugin.Models.Keys);
         List<PluginModel> testPartnerModels = _aPlugin.Models["test_partner"];
         List<PluginModel> testCategoryModels = _aPlugin.Models["test_category"];
-        Assert.That(testPartnerModels, Has.Count.EqualTo(3));
-        Assert.That(testCategoryModels, Has.Count.EqualTo(1));
+        Assert.Equal(3, testPartnerModels.Count);
+        Assert.Single(testCategoryModels);
         
         
         // First model
-        Assert.That(testPartnerModels[0].Plugin, Is.EqualTo(_aPlugin));
-        Assert.That(testPartnerModels[0].Name, Is.EqualTo("test_partner"));
-        Assert.That(testPartnerModels[0].Description, Is.EqualTo("Contact"));
-        Assert.That(testPartnerModels[0].Fields, Has.Count.EqualTo(10));
+        Assert.Equal(_aPlugin, testPartnerModels[0].Plugin);
+        Assert.Equal("test_partner", testPartnerModels[0].Name);
+        Assert.Equal("Contact", testPartnerModels[0].Description);
+        Assert.Equal(10, testPartnerModels[0].Fields.Count);
         
         // Fields
-        Assert.That(testPartnerModels[0].Fields, Contains.Key("Name"));
-        Assert.That(testPartnerModels[0].Fields["Name"].Plugin, Is.EqualTo(_aPlugin));
-        Assert.That(testPartnerModels[0].Fields["Name"].FieldName, Is.EqualTo("Name"));
-        Assert.That(testPartnerModels[0].Fields["Name"].FieldType, Is.EqualTo(FieldType.String));
-        Assert.That(testPartnerModels[0].Fields["Name"].Name, Is.Null);
-        Assert.That(testPartnerModels[0].Fields["Name"].Description, Is.EqualTo("Name of the partner"));
-        Assert.That(testPartnerModels[0].Fields["Name"].DefaultComputedMethod, Is.Not.Null);
-        Assert.That(testPartnerModels[0].Fields["Name"].DefaultComputedMethod.FieldName, Is.EqualTo("Name"));
-        Assert.That(testPartnerModels[0].Fields["Name"].DefaultComputedMethod.DefaultValue, Is.EqualTo("Test"));
-        Assert.That(testPartnerModels[0].Fields["Name"].DefaultComputedMethod.ComputedAttribute, Is.Null);
-        Assert.That(testPartnerModels[0].Fields["Name"].DefaultComputedMethod.MethodInfo, Is.Null);
-        Assert.That(testPartnerModels[0].Fields["Name"].DefaultComputedMethod.IsComputedStatic, Is.False);
-        Assert.That(testPartnerModels[0].Fields["Name"].DefaultComputedMethod.IsPresent, Is.True);
+        Assert.Contains("Name", testPartnerModels[0].Fields.Keys);
+        Assert.Equal(_aPlugin, testPartnerModels[0].Fields["Name"].Plugin);
+        Assert.Equal("Name", testPartnerModels[0].Fields["Name"].FieldName);
+        Assert.Equal(FieldType.String, testPartnerModels[0].Fields["Name"].FieldType);
+        Assert.Null(testPartnerModels[0].Fields["Name"].Name);
+        Assert.Equal("Name of the partner", testPartnerModels[0].Fields["Name"].Description);
         
-        Assert.That(testPartnerModels[0].Fields, Contains.Key("Age"));
-        Assert.That(testPartnerModels[0].Fields["Age"].Plugin, Is.EqualTo(_aPlugin));
-        Assert.That(testPartnerModels[0].Fields["Age"].FieldName, Is.EqualTo("Age"));
-        Assert.That(testPartnerModels[0].Fields["Age"].FieldType, Is.EqualTo(FieldType.Integer));
-        Assert.That(testPartnerModels[0].Fields["Age"].Name, Is.EqualTo("Age 2"));
-        Assert.That(testPartnerModels[0].Fields["Age"].Description, Is.EqualTo("Age of the partner"));
-        Assert.That(testPartnerModels[0].Fields["Age"].DefaultComputedMethod, Is.Not.Null);
-        Assert.That(testPartnerModels[0].Fields["Age"].DefaultComputedMethod.FieldName, Is.EqualTo("Age"));
-        Assert.That(testPartnerModels[0].Fields["Age"].DefaultComputedMethod.DefaultValue, Is.EqualTo(42));
-        Assert.That(testPartnerModels[0].Fields["Age"].DefaultComputedMethod.ComputedAttribute, Is.Null);
-        Assert.That(testPartnerModels[0].Fields["Age"].DefaultComputedMethod.MethodInfo, Is.Null);
-        Assert.That(testPartnerModels[0].Fields["Age"].DefaultComputedMethod.IsComputedStatic, Is.False);
-        Assert.That(testPartnerModels[0].Fields["Age"].DefaultComputedMethod.IsPresent, Is.True);
+        var nameComputedMethod = testPartnerModels[0].Fields["Name"].DefaultComputedMethod;
+        Assert.NotNull(nameComputedMethod);
+        Assert.Equal("Name", nameComputedMethod.FieldName);
+        Assert.Equal("Test", nameComputedMethod.DefaultValue);
+        Assert.Null(nameComputedMethod.ComputedAttribute);
+        Assert.Null(nameComputedMethod.MethodInfo);
+        Assert.False(nameComputedMethod.IsComputedStatic);
+        Assert.True(nameComputedMethod.IsPresent);
         
-        Assert.That(testPartnerModels[0].Fields, Contains.Key("Color"));
-        Assert.That(testPartnerModels[0].Fields["Color"].Plugin, Is.EqualTo(_aPlugin));
-        Assert.That(testPartnerModels[0].Fields["Color"].FieldName, Is.EqualTo("Color"));
-        Assert.That(testPartnerModels[0].Fields["Color"].FieldType, Is.EqualTo(FieldType.Integer));
-        Assert.That(testPartnerModels[0].Fields["Color"].Name, Is.Null);
-        Assert.That(testPartnerModels[0].Fields["Color"].Description, Is.Null);
-        Assert.That(testPartnerModels[0].Fields["Color"].DefaultComputedMethod, Is.Not.Null);
-        Assert.That(testPartnerModels[0].Fields["Color"].DefaultComputedMethod.FieldName, Is.EqualTo("Color"));
-        Assert.That(testPartnerModels[0].Fields["Color"].DefaultComputedMethod.DefaultValue, Is.EqualTo("DefaultRandomColor"));
-        Assert.That(testPartnerModels[0].Fields["Color"].DefaultComputedMethod.ComputedAttribute, Is.Null);
-        Assert.That(testPartnerModels[0].Fields["Color"].DefaultComputedMethod.MethodInfo, Is.Not.Null);
-        Assert.That(testPartnerModels[0].Fields["Color"].DefaultComputedMethod.IsComputedStatic, Is.True);
-        Assert.That(testPartnerModels[0].Fields["Color"].DefaultComputedMethod.IsPresent, Is.True);
+        var ageComputedMethod = testPartnerModels[0].Fields["Age"].DefaultComputedMethod;
+        Assert.Contains("Age", testPartnerModels[0].Fields.Keys);
+        Assert.Equal(_aPlugin, testPartnerModels[0].Fields["Age"].Plugin);
+        Assert.Equal("Age", testPartnerModels[0].Fields["Age"].FieldName);
+        Assert.Equal(FieldType.Integer, testPartnerModels[0].Fields["Age"].FieldType);
+        Assert.Equal("Age 2", testPartnerModels[0].Fields["Age"].Name);
+        Assert.Equal("Age of the partner", testPartnerModels[0].Fields["Age"].Description);
+        Assert.NotNull(ageComputedMethod);
+        Assert.Equal("Age", ageComputedMethod.FieldName);
+        Assert.Equal(42, ageComputedMethod.DefaultValue);
+        Assert.Null(ageComputedMethod.ComputedAttribute);
+        Assert.Null(ageComputedMethod.MethodInfo);
+        Assert.False(ageComputedMethod.IsComputedStatic);
+        Assert.True(ageComputedMethod.IsPresent);
         
-        Assert.That(testPartnerModels[0].Fields, Contains.Key("DisplayName"));
-        Assert.That(testPartnerModels[0].Fields["DisplayName"].Plugin, Is.EqualTo(_aPlugin));
-        Assert.That(testPartnerModels[0].Fields["DisplayName"].FieldName, Is.EqualTo("DisplayName"));
-        Assert.That(testPartnerModels[0].Fields["DisplayName"].FieldType, Is.EqualTo(FieldType.String));
-        Assert.That(testPartnerModels[0].Fields["DisplayName"].Name, Is.Null);
-        Assert.That(testPartnerModels[0].Fields["DisplayName"].Description, Is.EqualTo("Name to display of the partner"));
-        Assert.That(testPartnerModels[0].Fields["DisplayName"].DefaultComputedMethod, Is.Not.Null);
-        Assert.That(testPartnerModels[0].Fields["DisplayName"].DefaultComputedMethod.FieldName, Is.EqualTo("DisplayName"));
-        Assert.That(testPartnerModels[0].Fields["DisplayName"].DefaultComputedMethod.DefaultValue, Is.EqualTo("ComputeDisplayName"));
-        Assert.That(testPartnerModels[0].Fields["DisplayName"].DefaultComputedMethod.ComputedAttribute, Is.Not.Null);
-        Assert.That(testPartnerModels[0].Fields["DisplayName"].DefaultComputedMethod.MethodInfo, Is.Not.Null);
-        Assert.That(testPartnerModels[0].Fields["DisplayName"].DefaultComputedMethod.IsComputedStatic, Is.False);
-        Assert.That(testPartnerModels[0].Fields["DisplayName"].DefaultComputedMethod.IsPresent, Is.True);
+        var colorComputedMethod = testPartnerModels[0].Fields["Color"].DefaultComputedMethod;
+        Assert.Contains("Color", testPartnerModels[0].Fields.Keys);
+        Assert.Equal(_aPlugin, testPartnerModels[0].Fields["Color"].Plugin);
+        Assert.Equal("Color", testPartnerModels[0].Fields["Color"].FieldName);
+        Assert.Equal(FieldType.Integer, testPartnerModels[0].Fields["Color"].FieldType);
+        Assert.Null(testPartnerModels[0].Fields["Color"].Name);
+        Assert.Null(testPartnerModels[0].Fields["Color"].Description);
+        Assert.NotNull(colorComputedMethod);
+        Assert.Equal("Color", colorComputedMethod.FieldName);
+        Assert.Equal("DefaultRandomColor", colorComputedMethod.DefaultValue);
+        Assert.Null(colorComputedMethod.ComputedAttribute);
+        Assert.NotNull(colorComputedMethod.MethodInfo);
+        Assert.True(colorComputedMethod.IsComputedStatic);
+        Assert.True(colorComputedMethod.IsPresent);
         
-        Assert.That(testPartnerModels[0].Fields, Contains.Key("MyDate"));
-        Assert.That(testPartnerModels[0].Fields["MyDate"].Plugin, Is.EqualTo(_aPlugin));
-        Assert.That(testPartnerModels[0].Fields["MyDate"].FieldName, Is.EqualTo("MyDate"));
-        Assert.That(testPartnerModels[0].Fields["MyDate"].FieldType, Is.EqualTo(FieldType.Date));
-        Assert.That(testPartnerModels[0].Fields["MyDate"].Name, Is.EqualTo("MyDate"));
-        Assert.That(testPartnerModels[0].Fields["MyDate"].Description, Is.EqualTo("My Date"));
-        Assert.That(testPartnerModels[0].Fields["MyDate"].DefaultComputedMethod, Is.Not.Null);
-        Assert.That(testPartnerModels[0].Fields["MyDate"].DefaultComputedMethod.FieldName, Is.EqualTo("MyDate"));
-        Assert.That(testPartnerModels[0].Fields["MyDate"].DefaultComputedMethod.DefaultValue, Is.EqualTo("DefaultMyDate"));
-        Assert.That(testPartnerModels[0].Fields["MyDate"].DefaultComputedMethod.ComputedAttribute, Is.Null);
-        Assert.That(testPartnerModels[0].Fields["MyDate"].DefaultComputedMethod.MethodInfo, Is.Not.Null);
-        Assert.That(testPartnerModels[0].Fields["MyDate"].DefaultComputedMethod.IsComputedStatic, Is.True);
-        Assert.That(testPartnerModels[0].Fields["MyDate"].DefaultComputedMethod.IsPresent, Is.True);
+        var displayNameComputedMethod = testPartnerModels[0].Fields["DisplayName"].DefaultComputedMethod;
+        Assert.Contains("DisplayName", testPartnerModels[0].Fields.Keys);
+        Assert.Equal(_aPlugin, testPartnerModels[0].Fields["DisplayName"].Plugin);
+        Assert.Equal("DisplayName", testPartnerModels[0].Fields["DisplayName"].FieldName);
+        Assert.Equal(FieldType.String, testPartnerModels[0].Fields["DisplayName"].FieldType);
+        Assert.Null(testPartnerModels[0].Fields["DisplayName"].Name);
+        Assert.Equal("Name to display of the partner", testPartnerModels[0].Fields["DisplayName"].Description);
+        Assert.NotNull(displayNameComputedMethod);
+        Assert.Equal("DisplayName", displayNameComputedMethod.FieldName);
+        Assert.Equal("ComputeDisplayName", displayNameComputedMethod.DefaultValue);
+        Assert.NotNull(displayNameComputedMethod.ComputedAttribute);
+        Assert.NotNull(displayNameComputedMethod.MethodInfo);
+        Assert.False(displayNameComputedMethod.IsComputedStatic);
+        Assert.True(displayNameComputedMethod.IsPresent);
         
-        Assert.That(testPartnerModels[0].Fields, Contains.Key("MyDateTime"));
-        Assert.That(testPartnerModels[0].Fields["MyDateTime"].Plugin, Is.EqualTo(_aPlugin));
-        Assert.That(testPartnerModels[0].Fields["MyDateTime"].FieldName, Is.EqualTo("MyDateTime"));
-        Assert.That(testPartnerModels[0].Fields["MyDateTime"].FieldType, Is.EqualTo(FieldType.Datetime));
-        Assert.That(testPartnerModels[0].Fields["MyDateTime"].Name, Is.EqualTo("MyTime"));
-        Assert.That(testPartnerModels[0].Fields["MyDateTime"].Description, Is.EqualTo("My Date Time"));
-        Assert.That(testPartnerModels[0].Fields["MyDateTime"].DefaultComputedMethod, Is.Null);
+        var myDateComputedMethod = testPartnerModels[0].Fields["MyDate"].DefaultComputedMethod;
+        Assert.Contains("MyDate", testPartnerModels[0].Fields.Keys);
+        Assert.Equal(_aPlugin, testPartnerModels[0].Fields["MyDate"].Plugin);
+        Assert.Equal("MyDate", testPartnerModels[0].Fields["MyDate"].FieldName);
+        Assert.Equal(FieldType.Date, testPartnerModels[0].Fields["MyDate"].FieldType);
+        Assert.Equal("MyDate", testPartnerModels[0].Fields["MyDate"].Name);
+        Assert.Equal("My Date", testPartnerModels[0].Fields["MyDate"].Description);
+        Assert.NotNull(myDateComputedMethod);
+        Assert.Equal("MyDate", myDateComputedMethod.FieldName);
+        Assert.Equal("DefaultMyDate", myDateComputedMethod.DefaultValue);
+        Assert.Null(myDateComputedMethod.ComputedAttribute);
+        Assert.NotNull(myDateComputedMethod.MethodInfo);
+        Assert.True(myDateComputedMethod.IsComputedStatic);
+        Assert.True(myDateComputedMethod.IsPresent);
         
-        Assert.That(testPartnerModels[0].Fields, Contains.Key("Category"));
-        Assert.That(testPartnerModels[0].Fields["Category"].Plugin, Is.EqualTo(_aPlugin));
-        Assert.That(testPartnerModels[0].Fields["Category"].FieldName, Is.EqualTo("Category"));
-        Assert.That(testPartnerModels[0].Fields["Category"].FieldType, Is.EqualTo(FieldType.ManyToOne));
-        Assert.That(testPartnerModels[0].Fields["Category"].Name, Is.EqualTo("Category"));
-        Assert.That(testPartnerModels[0].Fields["Category"].Description, Is.EqualTo("Partner's category"));
-        Assert.That(testPartnerModels[0].Fields["Category"].DefaultComputedMethod, Is.Null);
+        Assert.Contains("MyDateTime", testPartnerModels[0].Fields.Keys);
+        Assert.Equal(_aPlugin, testPartnerModels[0].Fields["MyDateTime"].Plugin);
+        Assert.Equal("MyDateTime", testPartnerModels[0].Fields["MyDateTime"].FieldName);
+        Assert.Equal(FieldType.Datetime, testPartnerModels[0].Fields["MyDateTime"].FieldType);
+        Assert.Equal("MyTime", testPartnerModels[0].Fields["MyDateTime"].Name);
+        Assert.Equal("My Date Time", testPartnerModels[0].Fields["MyDateTime"].Description);
+        Assert.Null(testPartnerModels[0].Fields["MyDateTime"].DefaultComputedMethod);
+        
+        Assert.Contains("Category", testPartnerModels[0].Fields.Keys);
+        Assert.Equal(_aPlugin, testPartnerModels[0].Fields["Category"].Plugin);
+        Assert.Equal("Category", testPartnerModels[0].Fields["Category"].FieldName);
+        Assert.Equal(FieldType.ManyToOne, testPartnerModels[0].Fields["Category"].FieldType);
+        Assert.Equal("Category", testPartnerModels[0].Fields["Category"].Name);
+        Assert.Equal("Partner's category", testPartnerModels[0].Fields["Category"].Description);
+        Assert.Null(testPartnerModels[0].Fields["Category"].DefaultComputedMethod);
 
         // Second model
-        Assert.That(testPartnerModels[1].Plugin, Is.EqualTo(_aPlugin));
-        Assert.That(testPartnerModels[1].Name, Is.EqualTo("test_partner"));
-        Assert.That(testPartnerModels[1].Description, Is.EqualTo("Contact :D"));
-        Assert.That(testPartnerModels[1].Fields, Has.Count.EqualTo(5));
+        Assert.Equal(_aPlugin, testPartnerModels[1].Plugin);
+        Assert.Equal("test_partner", testPartnerModels[1].Name);
+        Assert.Equal("Contact :D", testPartnerModels[1].Description);
+        Assert.Equal(5, testPartnerModels[1].Fields.Count);
         
         // Fields
-        Assert.That(testPartnerModels[1].Fields, Contains.Key("Name"));
-        Assert.That(testPartnerModels[1].Fields["Name"].Plugin, Is.EqualTo(_aPlugin));
-        Assert.That(testPartnerModels[1].Fields["Name"].FieldName, Is.EqualTo("Name"));
-        Assert.That(testPartnerModels[1].Fields["Name"].FieldType, Is.EqualTo(FieldType.String));
-        Assert.That(testPartnerModels[1].Fields["Name"].Name, Is.Null);
-        Assert.That(testPartnerModels[1].Fields["Name"].Description, Is.EqualTo("Not the name of the partner"));
-        Assert.That(testPartnerModels[1].Fields["Name"].DefaultComputedMethod, Is.Not.Null);
-        Assert.That(testPartnerModels[1].Fields["Name"].DefaultComputedMethod.FieldName, Is.EqualTo("Name"));
-        Assert.That(testPartnerModels[1].Fields["Name"].DefaultComputedMethod.DefaultValue, Is.EqualTo("LoL"));
-        Assert.That(testPartnerModels[1].Fields["Name"].DefaultComputedMethod.ComputedAttribute, Is.Null);
-        Assert.That(testPartnerModels[1].Fields["Name"].DefaultComputedMethod.MethodInfo, Is.Null);
-        Assert.That(testPartnerModels[1].Fields["Name"].DefaultComputedMethod.IsComputedStatic, Is.False);
-        Assert.That(testPartnerModels[1].Fields["Name"].DefaultComputedMethod.IsPresent, Is.True);
+        nameComputedMethod = testPartnerModels[1].Fields["Name"].DefaultComputedMethod;
+        Assert.Contains("Name", testPartnerModels[1].Fields.Keys);
+        Assert.Equal(_aPlugin, testPartnerModels[1].Fields["Name"].Plugin);
+        Assert.Equal("Name", testPartnerModels[1].Fields["Name"].FieldName);
+        Assert.Equal(FieldType.String, testPartnerModels[1].Fields["Name"].FieldType);
+        Assert.Null(testPartnerModels[1].Fields["Name"].Name);
+        Assert.Equal("Not the name of the partner", testPartnerModels[1].Fields["Name"].Description);
+        Assert.NotNull(nameComputedMethod);
+        Assert.Equal("Name", nameComputedMethod.FieldName);
+        Assert.Equal("LoL", nameComputedMethod.DefaultValue);
+        Assert.Null(nameComputedMethod.ComputedAttribute);
+        Assert.Null(nameComputedMethod.MethodInfo);
+        Assert.False(nameComputedMethod.IsComputedStatic);
+        Assert.True(nameComputedMethod.IsPresent);
         
-        Assert.That(testPartnerModels[1].Fields, Contains.Key("Test"));
-        Assert.That(testPartnerModels[1].Fields["Test"].Plugin, Is.EqualTo(_aPlugin));
-        Assert.That(testPartnerModels[1].Fields["Test"].FieldName, Is.EqualTo("Test"));
-        Assert.That(testPartnerModels[1].Fields["Test"].FieldType, Is.EqualTo(FieldType.Integer));
-        Assert.That(testPartnerModels[1].Fields["Test"].Name, Is.Null);
-        Assert.That(testPartnerModels[1].Fields["Test"].Description, Is.Null);
-        Assert.That(testPartnerModels[1].Fields["Test"].DefaultComputedMethod, Is.Null);
+        Assert.Contains("Test", testPartnerModels[1].Fields.Keys);
+        Assert.Equal(_aPlugin, testPartnerModels[1].Fields["Test"].Plugin);
+        Assert.Equal("Test", testPartnerModels[1].Fields["Test"].FieldName);
+        Assert.Equal(FieldType.Integer, testPartnerModels[1].Fields["Test"].FieldType);
+        Assert.Null(testPartnerModels[1].Fields["Test"].Name);
+        Assert.Null(testPartnerModels[1].Fields["Test"].Description);
+        Assert.Null(testPartnerModels[1].Fields["Test"].DefaultComputedMethod);
 
         // Third model
-        Assert.That(testPartnerModels[2].Plugin, Is.EqualTo(_aPlugin));
-        Assert.That(testPartnerModels[2].Name, Is.EqualTo("test_partner"));
-        Assert.That(testPartnerModels[2].Description, Is.Null);
-        Assert.That(testPartnerModels[2].Fields, Has.Count.EqualTo(5));
+        Assert.Equal(_aPlugin, testPartnerModels[2].Plugin);
+        Assert.Equal("test_partner", testPartnerModels[2].Name);
+        Assert.Null(testPartnerModels[2].Description);
+        Assert.Equal(5, testPartnerModels[2].Fields.Count);
         
         // Fields
-        Assert.That(testPartnerModels[2].Fields, Contains.Key("Age"));
-        Assert.That(testPartnerModels[2].Fields["Age"].Plugin, Is.EqualTo(_aPlugin));
-        Assert.That(testPartnerModels[2].Fields["Age"].FieldName, Is.EqualTo("Age"));
-        Assert.That(testPartnerModels[2].Fields["Age"].FieldType, Is.EqualTo(FieldType.Integer));
-        Assert.That(testPartnerModels[2].Fields["Age"].Name, Is.EqualTo("Not his Age"));
-        Assert.That(testPartnerModels[2].Fields["Age"].Description, Is.EqualTo("Age of him"));
-        Assert.That(testPartnerModels[2].Fields["Age"].DefaultComputedMethod, Is.Not.Null);
-        Assert.That(testPartnerModels[2].Fields["Age"].DefaultComputedMethod.FieldName, Is.EqualTo("Age"));
-        Assert.That(testPartnerModels[2].Fields["Age"].DefaultComputedMethod.DefaultValue, Is.EqualTo("DefaultAge"));
-        Assert.That(testPartnerModels[2].Fields["Age"].DefaultComputedMethod.ComputedAttribute, Is.Null);
-        Assert.That(testPartnerModels[2].Fields["Age"].DefaultComputedMethod.MethodInfo, Is.Not.Null);
-        Assert.That(testPartnerModels[2].Fields["Age"].DefaultComputedMethod.IsComputedStatic, Is.True);
-        Assert.That(testPartnerModels[2].Fields["Age"].DefaultComputedMethod.IsPresent, Is.True);
+        ageComputedMethod = testPartnerModels[2].Fields["Age"].DefaultComputedMethod;
+        Assert.Contains("Age", testPartnerModels[2].Fields.Keys);
+        Assert.Equal(_aPlugin, testPartnerModels[2].Fields["Age"].Plugin);
+        Assert.Equal("Age", testPartnerModels[2].Fields["Age"].FieldName);
+        Assert.Equal(FieldType.Integer, testPartnerModels[2].Fields["Age"].FieldType);
+        Assert.Equal("Not his Age", testPartnerModels[2].Fields["Age"].Name);
+        Assert.Equal("Age of him", testPartnerModels[2].Fields["Age"].Description);
+        Assert.NotNull(ageComputedMethod);
+        Assert.Equal("Age", ageComputedMethod.FieldName);
+        Assert.Equal("DefaultAge", ageComputedMethod.DefaultValue);
+        Assert.Null(ageComputedMethod.ComputedAttribute);
+        Assert.NotNull(ageComputedMethod.MethodInfo);
+        Assert.True(ageComputedMethod.IsComputedStatic);
+        Assert.True(ageComputedMethod.IsPresent);
         
-        Assert.That(testPartnerModels[2].Fields, Contains.Key("Test"));
-        Assert.That(testPartnerModels[2].Fields["Test"].Plugin, Is.EqualTo(_aPlugin));
-        Assert.That(testPartnerModels[2].Fields["Test"].FieldName, Is.EqualTo("Test"));
-        Assert.That(testPartnerModels[2].Fields["Test"].FieldType, Is.EqualTo(FieldType.Integer));
-        Assert.That(testPartnerModels[2].Fields["Test"].Name, Is.Null);
-        Assert.That(testPartnerModels[2].Fields["Test"].Description, Is.Null);
-        Assert.That(testPartnerModels[2].Fields["Test"].DefaultComputedMethod, Is.Not.Null);
-        Assert.That(testPartnerModels[2].Fields["Test"].DefaultComputedMethod.FieldName, Is.EqualTo("Test"));
-        Assert.That(testPartnerModels[2].Fields["Test"].DefaultComputedMethod.DefaultValue, Is.EqualTo(30));
-        Assert.That(testPartnerModels[2].Fields["Test"].DefaultComputedMethod.ComputedAttribute, Is.Null);
-        Assert.That(testPartnerModels[2].Fields["Test"].DefaultComputedMethod.MethodInfo, Is.Null);
-        Assert.That(testPartnerModels[2].Fields["Test"].DefaultComputedMethod.IsComputedStatic, Is.False);
-        Assert.That(testPartnerModels[2].Fields["Test"].DefaultComputedMethod.IsPresent, Is.True);
+        var testComputedMethod = testPartnerModels[2].Fields["Test"].DefaultComputedMethod;
+        Assert.Contains("Test", testPartnerModels[2].Fields.Keys);
+        Assert.Equal(_aPlugin, testPartnerModels[2].Fields["Test"].Plugin);
+        Assert.Equal("Test", testPartnerModels[2].Fields["Test"].FieldName);
+        Assert.Equal(FieldType.Integer, testPartnerModels[2].Fields["Test"].FieldType);
+        Assert.Null(testPartnerModels[2].Fields["Test"].Name);
+        Assert.Null(testPartnerModels[2].Fields["Test"].Description);
+        Assert.NotNull(testComputedMethod);
+        Assert.Equal("Test", testComputedMethod.FieldName);
+        Assert.Equal(30, testComputedMethod.DefaultValue);
+        Assert.Null(testComputedMethod.ComputedAttribute);
+        Assert.Null(testComputedMethod.MethodInfo);
+        Assert.False(testComputedMethod.IsComputedStatic);
+        Assert.True(testComputedMethod.IsPresent);
 
         // Category model
-        Assert.That(testCategoryModels[0].Plugin, Is.EqualTo(_aPlugin));
-        Assert.That(testCategoryModels[0].Name, Is.EqualTo("test_category"));
-        Assert.That(testCategoryModels[0].Description, Is.EqualTo("Contact Category"));
-        Assert.That(testCategoryModels[0].Fields, Has.Count.EqualTo(5));
+        Assert.Equal(_aPlugin, testCategoryModels[0].Plugin);
+        Assert.Equal("test_category", testCategoryModels[0].Name);
+        Assert.Equal("Contact Category", testCategoryModels[0].Description);
+        Assert.Equal(5, testCategoryModels[0].Fields.Count);
         
         // Fields
-        Assert.That(testCategoryModels[0].Fields, Contains.Key("Name"));
-        Assert.That(testCategoryModels[0].Fields["Name"].Plugin, Is.EqualTo(_aPlugin));
-        Assert.That(testCategoryModels[0].Fields["Name"].FieldName, Is.EqualTo("Name"));
-        Assert.That(testCategoryModels[0].Fields["Name"].FieldType, Is.EqualTo(FieldType.String));
-        Assert.That(testCategoryModels[0].Fields["Name"].Name, Is.Null);
-        Assert.That(testCategoryModels[0].Fields["Name"].Description, Is.EqualTo("Name of the category"));
-        Assert.That(testCategoryModels[0].Fields["Name"].DefaultComputedMethod, Is.Null);
+        Assert.Contains("Name", testCategoryModels[0].Fields.Keys);
+        Assert.Equal(_aPlugin, testCategoryModels[0].Fields["Name"].Plugin);
+        Assert.Equal("Name", testCategoryModels[0].Fields["Name"].FieldName);
+        Assert.Equal(FieldType.String, testCategoryModels[0].Fields["Name"].FieldType);
+        Assert.Null(testCategoryModels[0].Fields["Name"].Name);
+        Assert.Equal("Name of the category", testCategoryModels[0].Fields["Name"].Description);
+        Assert.Null(testCategoryModels[0].Fields["Name"].DefaultComputedMethod);
         
-        Assert.That(testCategoryModels[0].Fields, Contains.Key("Partners"));
-        Assert.That(testCategoryModels[0].Fields["Partners"].Plugin, Is.EqualTo(_aPlugin));
-        Assert.That(testCategoryModels[0].Fields["Partners"].FieldName, Is.EqualTo("Partners"));
-        Assert.That(testCategoryModels[0].Fields["Partners"].FieldType, Is.EqualTo(FieldType.OneToMany));
-        Assert.That(testCategoryModels[0].Fields["Partners"].Name, Is.Null);
-        Assert.That(testCategoryModels[0].Fields["Partners"].Description, Is.EqualTo("Partners linked to this category"));
-        Assert.That(testCategoryModels[0].Fields["Partners"].DefaultComputedMethod, Is.Null);
-        Assert.That(testCategoryModels[0].Fields["Partners"].Type, Is.EqualTo(typeof(TestPartner)));
-        Assert.That(testCategoryModels[0].Fields["Partners"].TargetField, Is.EqualTo("Category"));
-        Assert.That(testCategoryModels[0].Fields["Partners"].OriginColumnName, Is.Null);
-        Assert.That(testCategoryModels[0].Fields["Partners"].TargetColumnName, Is.Null);
+        Assert.Contains("Partners", testCategoryModels[0].Fields.Keys);
+        Assert.Equal(_aPlugin, testCategoryModels[0].Fields["Partners"].Plugin);
+        Assert.Equal("Partners", testCategoryModels[0].Fields["Partners"].FieldName);
+        Assert.Equal(FieldType.OneToMany, testCategoryModels[0].Fields["Partners"].FieldType);
+        Assert.Null(testCategoryModels[0].Fields["Partners"].Name);
+        Assert.Equal("Partners linked to this category", testCategoryModels[0].Fields["Partners"].Description);
+        Assert.Null(testCategoryModels[0].Fields["Partners"].DefaultComputedMethod);
+        Assert.Equal(typeof(TestPartner), testCategoryModels[0].Fields["Partners"].Type);
+        Assert.Equal("Category", testCategoryModels[0].Fields["Partners"].TargetField);
+        Assert.Null(testCategoryModels[0].Fields["Partners"].OriginColumnName);
+        Assert.Null(testCategoryModels[0].Fields["Partners"].TargetColumnName);
     }
 
-    [Test]
+    [Fact]
     public void TestModelMerges()
     {
         // Install plugin
         _pluginManager.InstallPlugin(_aPlugin);
         
-        Assert.That(_pluginManager.ModelsSize, Is.EqualTo(TotalNumberOfModels));
-        Assert.That(_pluginManager.TotalModelsSize, Is.EqualTo(TotalNumberOfModelOverride));
+        Assert.Equal(TotalNumberOfModels, _pluginManager.ModelsSize);
+        Assert.Equal(TotalNumberOfModelOverride, _pluginManager.TotalModelsSize);
 
         FinalModel partnerModel = _pluginManager.GetFinalModel("test_partner");
-        Assert.That(partnerModel, Is.EqualTo(_pluginManager.Models.ToList()[0]));
-        Assert.That(partnerModel.Name, Is.EqualTo("test_partner"));
-        Assert.That(partnerModel.FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0]));
-        Assert.That(partnerModel.Description, Is.EqualTo("Contact :D"));
-        Assert.That(partnerModel.AllOccurences, Has.Count.EqualTo(3));
-        Assert.That(partnerModel.Fields, Has.Count.EqualTo(11));
+        Assert.Equal(_pluginManager.Models.ToList()[0], partnerModel);
+        Assert.Equal("test_partner", partnerModel.Name);
+        Assert.Equal(_aPlugin.Models["test_partner"][0], partnerModel.FirstOccurence);
+        Assert.Equal("Contact :D", partnerModel.Description);
+        Assert.Equal(3, partnerModel.AllOccurences.Count);
+        Assert.Equal(11, partnerModel.Fields.Count);
         
         // TestPartner
         List<FinalField> partnerFields = partnerModel.Fields.Values.ToList();
         
-        Assert.That(partnerFields[0].FieldName, Is.EqualTo("Name"));
-        Assert.That(partnerFields[0].FieldType, Is.EqualTo(FieldType.String));
-        Assert.That(partnerFields[0].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["Name"]));
-        Assert.That(partnerFields[0].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][1].Fields["Name"]));
-        Assert.That(partnerFields[0].AllOccurences, Has.Count.EqualTo(2));
-        Assert.That(partnerFields[0].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][0].Fields["Name"], _aPlugin.Models["test_partner"][1].Fields["Name"] }));
-        Assert.That(partnerFields[0].Name, Is.EqualTo("Name"));
-        Assert.That(partnerFields[0].Description, Is.EqualTo("Not the name of the partner"));
-        Assert.That(partnerFields[0].DefaultComputedMethod, Is.Not.Null);
-        Assert.That(partnerFields[0].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][1].Fields["Name"].DefaultComputedMethod));
-        Assert.That(partnerFields[0].TreeDependency.Root, Is.EqualTo(partnerFields[0]));
-        Assert.That(partnerFields[0].TreeDependency.IsLeaf, Is.False);
-        Assert.That(partnerFields[0].TreeDependency.Items, Contains.Key("test_partner.DisplayName"));
-        Assert.That(partnerFields[0].TreeDependency.Items, Contains.Value(new TreeNode(partnerFields[3], true)));
+        Assert.Equal("Name", partnerFields[0].FieldName);
+        Assert.Equal(FieldType.String, partnerFields[0].FieldType);
+        Assert.Equal(_aPlugin.Models["test_partner"][0].Fields["Name"], partnerFields[0].FirstOccurence);
+        Assert.Equal(_aPlugin.Models["test_partner"][1].Fields["Name"], partnerFields[0].LastOccurence);
+        Assert.Equal(2, partnerFields[0].AllOccurences.Count);
+        Assert.Equivalent(new[] { _aPlugin.Models["test_partner"][0].Fields["Name"], _aPlugin.Models["test_partner"][1].Fields["Name"] }, partnerFields[0].AllOccurences);
+        Assert.Equal("Name", partnerFields[0].Name);
+        Assert.Equal("Not the name of the partner", partnerFields[0].Description);
+        Assert.NotNull(partnerFields[0].DefaultComputedMethod);
+        Assert.Equal(_aPlugin.Models["test_partner"][1].Fields["Name"].DefaultComputedMethod, partnerFields[0].DefaultComputedMethod);
+        Assert.Equal(partnerFields[0], partnerFields[0].TreeDependency.Root);
+        Assert.False(partnerFields[0].TreeDependency.IsLeaf);
+        Assert.Contains("test_partner.DisplayName", partnerFields[0].TreeDependency.Items.Keys);
+        Assert.Contains(new TreeNode(partnerFields[3], true), partnerFields[0].TreeDependency.Items.Values);
 
-        Assert.That(partnerFields[1].FieldName, Is.EqualTo("Age"));
-        Assert.That(partnerFields[1].FieldType, Is.EqualTo(FieldType.Integer));
-        Assert.That(partnerFields[1].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["Age"]));
-        Assert.That(partnerFields[1].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][2].Fields["Age"]));
-        Assert.That(partnerFields[1].AllOccurences, Has.Count.EqualTo(2));
-        Assert.That(partnerFields[1].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][0].Fields["Age"], _aPlugin.Models["test_partner"][2].Fields["Age"] }));
-        Assert.That(partnerFields[1].Name, Is.EqualTo("Not his Age"));
-        Assert.That(partnerFields[1].Description, Is.EqualTo("Age of him"));
-        Assert.That(partnerFields[1].DefaultComputedMethod, Is.Not.Null);
-        Assert.That(partnerFields[1].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][2].Fields["Age"].DefaultComputedMethod));
-        Assert.That(partnerFields[1].TreeDependency.Root, Is.EqualTo(partnerFields[1]));
-        Assert.That(partnerFields[1].TreeDependency.IsLeaf, Is.False);
-        Assert.That(partnerFields[1].TreeDependency.Items, Contains.Key("test_partner.DisplayName"));
-        Assert.That(partnerFields[1].TreeDependency.Items, Contains.Value(new TreeNode(partnerFields[3], true)));
+        Assert.Equal("Age", partnerFields[1].FieldName);
+        Assert.Equal(FieldType.Integer, partnerFields[1].FieldType);
+        Assert.Equal(_aPlugin.Models["test_partner"][0].Fields["Age"], partnerFields[1].FirstOccurence);
+        Assert.Equal(_aPlugin.Models["test_partner"][2].Fields["Age"], partnerFields[1].LastOccurence);
+        Assert.Equal(2, partnerFields[1].AllOccurences.Count);
+        Assert.Equivalent(new[] { _aPlugin.Models["test_partner"][0].Fields["Age"], _aPlugin.Models["test_partner"][2].Fields["Age"] }, partnerFields[1].AllOccurences);
+        Assert.Equal("Not his Age", partnerFields[1].Name);
+        Assert.Equal("Age of him", partnerFields[1].Description);
+        Assert.NotNull(partnerFields[1].DefaultComputedMethod);
+        Assert.Equal(_aPlugin.Models["test_partner"][2].Fields["Age"].DefaultComputedMethod, partnerFields[1].DefaultComputedMethod);
+        Assert.Equal(partnerFields[1], partnerFields[1].TreeDependency.Root);
+        Assert.False(partnerFields[1].TreeDependency.IsLeaf);
+        Assert.Contains("test_partner.DisplayName", partnerFields[1].TreeDependency.Items.Keys);
+        Assert.Contains(new TreeNode(partnerFields[3], true), partnerFields[1].TreeDependency.Items.Values);
         
-        Assert.That(partnerFields[2].FieldName, Is.EqualTo("Color"));
-        Assert.That(partnerFields[2].FieldType, Is.EqualTo(FieldType.Integer));
-        Assert.That(partnerFields[2].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["Color"]));
-        Assert.That(partnerFields[2].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["Color"]));
-        Assert.That(partnerFields[2].AllOccurences, Has.Count.EqualTo(1));
-        Assert.That(partnerFields[2].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][0].Fields["Color"] }));
-        Assert.That(partnerFields[2].Name, Is.EqualTo("Color"));
-        Assert.That(partnerFields[2].Description, Is.EqualTo("Color"));
-        Assert.That(partnerFields[2].DefaultComputedMethod, Is.Not.Null);
-        Assert.That(partnerFields[2].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["Color"].DefaultComputedMethod));
-        Assert.That(partnerFields[2].TreeDependency.Root, Is.EqualTo(partnerFields[2]));
-        Assert.That(partnerFields[2].TreeDependency.IsLeaf, Is.True);
-        Assert.That(partnerFields[2].TreeDependency.Items, Is.Empty);
+        Assert.Equal("Color", partnerFields[2].FieldName);
+        Assert.Equal(FieldType.Integer, partnerFields[2].FieldType);
+        Assert.Equal(_aPlugin.Models["test_partner"][0].Fields["Color"], partnerFields[2].FirstOccurence);
+        Assert.Equal(_aPlugin.Models["test_partner"][0].Fields["Color"], partnerFields[2].LastOccurence);
+        Assert.Single(partnerFields[2].AllOccurences);
+        Assert.Equivalent(new[] { _aPlugin.Models["test_partner"][0].Fields["Color"] }, partnerFields[2].AllOccurences);
+        Assert.Equal("Color", partnerFields[2].Name);
+        Assert.Equal("Color", partnerFields[2].Description);
+        Assert.NotNull(partnerFields[2].DefaultComputedMethod);
+        Assert.Equal(_aPlugin.Models["test_partner"][0].Fields["Color"].DefaultComputedMethod, partnerFields[2].DefaultComputedMethod);
+        Assert.Equal(partnerFields[2], partnerFields[2].TreeDependency.Root);
+        Assert.True(partnerFields[2].TreeDependency.IsLeaf);
+        Assert.Empty(partnerFields[2].TreeDependency.Items);
         
-        Assert.That(partnerFields[3].FieldName, Is.EqualTo("DisplayName"));
-        Assert.That(partnerFields[3].FieldType, Is.EqualTo(FieldType.String));
-        Assert.That(partnerFields[3].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["DisplayName"]));
-        Assert.That(partnerFields[3].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["DisplayName"]));
-        Assert.That(partnerFields[3].AllOccurences, Has.Count.EqualTo(1));
-        Assert.That(partnerFields[3].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][0].Fields["DisplayName"] }));
-        Assert.That(partnerFields[3].Name, Is.EqualTo("DisplayName"));
-        Assert.That(partnerFields[3].Description, Is.EqualTo("Name to display of the partner"));
-        Assert.That(partnerFields[3].DefaultComputedMethod, Is.Not.Null);
-        Assert.That(partnerFields[3].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["DisplayName"].DefaultComputedMethod));
-        Assert.That(partnerFields[3].TreeDependency.IsLeaf, Is.True);
-        Assert.That(partnerFields[3].TreeDependency.Items, Is.Empty);
+        Assert.Equal("DisplayName", partnerFields[3].FieldName);
+        Assert.Equal(FieldType.String, partnerFields[3].FieldType);
+        Assert.Equal(_aPlugin.Models["test_partner"][0].Fields["DisplayName"], partnerFields[3].FirstOccurence);
+        Assert.Equal(_aPlugin.Models["test_partner"][0].Fields["DisplayName"], partnerFields[3].LastOccurence);
+        Assert.Single(partnerFields[3].AllOccurences);
+        Assert.Equivalent(new[] { _aPlugin.Models["test_partner"][0].Fields["DisplayName"] }, partnerFields[3].AllOccurences);
+        Assert.Equal("DisplayName", partnerFields[3].Name);
+        Assert.Equal("Name to display of the partner", partnerFields[3].Description);
+        Assert.NotNull(partnerFields[3].DefaultComputedMethod);
+        Assert.Equal(_aPlugin.Models["test_partner"][0].Fields["DisplayName"].DefaultComputedMethod, partnerFields[3].DefaultComputedMethod);
+        Assert.True(partnerFields[3].TreeDependency.IsLeaf);
+        Assert.Empty(partnerFields[3].TreeDependency.Items);
         
-        Assert.That(partnerFields[4].FieldName, Is.EqualTo("MyDate"));
-        Assert.That(partnerFields[4].FieldType, Is.EqualTo(FieldType.Date));
-        Assert.That(partnerFields[4].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["MyDate"]));
-        Assert.That(partnerFields[4].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["MyDate"]));
-        Assert.That(partnerFields[4].AllOccurences, Has.Count.EqualTo(1));
-        Assert.That(partnerFields[4].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][0].Fields["MyDate"] }));
-        Assert.That(partnerFields[4].Name, Is.EqualTo("MyDate"));
-        Assert.That(partnerFields[4].Description, Is.EqualTo("My Date"));
-        Assert.That(partnerFields[4].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["MyDate"].DefaultComputedMethod));
-        Assert.That(partnerFields[4].TreeDependency.IsLeaf, Is.True);
-        Assert.That(partnerFields[4].TreeDependency.Items, Is.Empty);
+        Assert.Equal("MyDate", partnerFields[4].FieldName);
+        Assert.Equal(FieldType.Date, partnerFields[4].FieldType);
+        Assert.Equal(_aPlugin.Models["test_partner"][0].Fields["MyDate"], partnerFields[4].FirstOccurence);
+        Assert.Equal(_aPlugin.Models["test_partner"][0].Fields["MyDate"], partnerFields[4].LastOccurence);
+        Assert.Single(partnerFields[4].AllOccurences);
+        Assert.Equivalent(new[] { _aPlugin.Models["test_partner"][0].Fields["MyDate"] }, partnerFields[4].AllOccurences);
+        Assert.Equal("MyDate", partnerFields[4].Name);
+        Assert.Equal("My Date", partnerFields[4].Description);
+        Assert.Equal(_aPlugin.Models["test_partner"][0].Fields["MyDate"].DefaultComputedMethod, partnerFields[4].DefaultComputedMethod);
+        Assert.True(partnerFields[4].TreeDependency.IsLeaf);
+        Assert.Empty(partnerFields[4].TreeDependency.Items);
         
-        Assert.That(partnerFields[5].FieldName, Is.EqualTo("MyDateTime"));
-        Assert.That(partnerFields[5].FieldType, Is.EqualTo(FieldType.Datetime));
-        Assert.That(partnerFields[5].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["MyDateTime"]));
-        Assert.That(partnerFields[5].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["MyDateTime"]));
-        Assert.That(partnerFields[5].AllOccurences, Has.Count.EqualTo(1));
-        Assert.That(partnerFields[5].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][0].Fields["MyDateTime"] }));
-        Assert.That(partnerFields[5].Name, Is.EqualTo("MyTime"));
-        Assert.That(partnerFields[5].Description, Is.EqualTo("My Date Time"));
-        Assert.That(partnerFields[5].DefaultComputedMethod, Is.Null);
-        Assert.That(partnerFields[5].TreeDependency.IsLeaf, Is.True);
-        Assert.That(partnerFields[5].TreeDependency.Items, Is.Empty);
+        Assert.Equal("MyDateTime", partnerFields[5].FieldName);
+        Assert.Equal(FieldType.Datetime, partnerFields[5].FieldType);
+        Assert.Equal(_aPlugin.Models["test_partner"][0].Fields["MyDateTime"], partnerFields[5].FirstOccurence);
+        Assert.Equal(_aPlugin.Models["test_partner"][0].Fields["MyDateTime"], partnerFields[5].LastOccurence);
+        Assert.Single(partnerFields[5].AllOccurences);
+        Assert.Equivalent(new[] { _aPlugin.Models["test_partner"][0].Fields["MyDateTime"] }, partnerFields[5].AllOccurences);
+        Assert.Equal("MyTime", partnerFields[5].Name);
+        Assert.Equal("My Date Time", partnerFields[5].Description);
+        Assert.Null(partnerFields[5].DefaultComputedMethod);
+        Assert.True(partnerFields[5].TreeDependency.IsLeaf);
+        Assert.Empty(partnerFields[5].TreeDependency.Items);
         
-        Assert.That(partnerFields[6].FieldName, Is.EqualTo("Category"));
-        Assert.That(partnerFields[6].FieldType, Is.EqualTo(FieldType.ManyToOne));
-        Assert.That(partnerFields[6].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["Category"]));
-        Assert.That(partnerFields[6].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][0].Fields["Category"]));
-        Assert.That(partnerFields[6].AllOccurences, Has.Count.EqualTo(1));
-        Assert.That(partnerFields[6].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][0].Fields["Category"] }));
-        Assert.That(partnerFields[6].Name, Is.EqualTo("Category"));
-        Assert.That(partnerFields[6].Description, Is.EqualTo("Partner's category"));
-        Assert.That(partnerFields[6].DefaultComputedMethod, Is.Null);
-        Assert.That(partnerFields[6].TreeDependency.IsLeaf, Is.True);
-        Assert.That(partnerFields[6].TreeDependency.Items, Is.Empty);
-        Assert.That(partnerFields[6].TargetField, Is.EqualTo("Partners"));
-        Assert.That(partnerFields[6].OriginColumnName, Is.Null);
-        Assert.That(partnerFields[6].TargetColumnName, Is.Null);
+        Assert.Equal("Category", partnerFields[6].FieldName);
+        Assert.Equal(FieldType.ManyToOne, partnerFields[6].FieldType);
+        Assert.Equal(_aPlugin.Models["test_partner"][0].Fields["Category"], partnerFields[6].FirstOccurence);
+        Assert.Equal(_aPlugin.Models["test_partner"][0].Fields["Category"], partnerFields[6].LastOccurence);
+        Assert.Single(partnerFields[6].AllOccurences);
+        Assert.Equivalent(new[] { _aPlugin.Models["test_partner"][0].Fields["Category"] }, partnerFields[6].AllOccurences);
+        Assert.Equal("Category", partnerFields[6].Name);
+        Assert.Equal("Partner's category", partnerFields[6].Description);
+        Assert.Null(partnerFields[6].DefaultComputedMethod);
+        Assert.True(partnerFields[6].TreeDependency.IsLeaf);
+        Assert.Empty(partnerFields[6].TreeDependency.Items);
+        Assert.Equal("Partners", partnerFields[6].TargetField);
+        Assert.Null(partnerFields[6].OriginColumnName);
+        Assert.Null(partnerFields[6].TargetColumnName);
         
         // 7, 8 & 9 are Id, CreationDate, UpdateDate
-        Assert.That(partnerFields[10].FieldName, Is.EqualTo("Test"));
-        Assert.That(partnerFields[10].FieldType, Is.EqualTo(FieldType.Integer));
-        Assert.That(partnerFields[10].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][1].Fields["Test"]));
-        Assert.That(partnerFields[10].LastOccurence, Is.EqualTo(_aPlugin.Models["test_partner"][2].Fields["Test"]));
-        Assert.That(partnerFields[10].AllOccurences, Has.Count.EqualTo(2));
-        Assert.That(partnerFields[10].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_partner"][1].Fields["Test"], _aPlugin.Models["test_partner"][2].Fields["Test"] }));
-        Assert.That(partnerFields[10].Name, Is.EqualTo("Test"));
-        Assert.That(partnerFields[10].Description, Is.EqualTo("Test"));
-        Assert.That(partnerFields[10].DefaultComputedMethod, Is.Not.Null);
-        Assert.That(partnerFields[10].DefaultComputedMethod, Is.EqualTo(_aPlugin.Models["test_partner"][2].Fields["Test"].DefaultComputedMethod));
-        Assert.That(partnerFields[10].TreeDependency.IsLeaf, Is.True);
-        Assert.That(partnerFields[10].TreeDependency.Items, Is.Empty);
+        Assert.Equal("Test", partnerFields[10].FieldName);
+        Assert.Equal(FieldType.Integer, partnerFields[10].FieldType);
+        Assert.Equal(_aPlugin.Models["test_partner"][1].Fields["Test"], partnerFields[10].FirstOccurence);
+        Assert.Equal(_aPlugin.Models["test_partner"][2].Fields["Test"], partnerFields[10].LastOccurence);
+        Assert.Equal(2, partnerFields[10].AllOccurences.Count);
+        Assert.Equivalent(new[] { _aPlugin.Models["test_partner"][1].Fields["Test"], _aPlugin.Models["test_partner"][2].Fields["Test"] }, partnerFields[10].AllOccurences);
+        Assert.Equal("Test", partnerFields[10].Name);
+        Assert.Equal("Test", partnerFields[10].Description);
+        Assert.NotNull(partnerFields[10].DefaultComputedMethod);
+        Assert.Equal(_aPlugin.Models["test_partner"][2].Fields["Test"].DefaultComputedMethod, partnerFields[10].DefaultComputedMethod);
+        Assert.True(partnerFields[10].TreeDependency.IsLeaf);
+        Assert.Empty(partnerFields[10].TreeDependency.Items);
 
         
         FinalModel categoryModel = _pluginManager.GetFinalModel("test_category");
-        Assert.That(categoryModel, Is.EqualTo(_pluginManager.Models.ToList()[1]));
-        Assert.That(categoryModel.Name, Is.EqualTo("test_category"));
-        Assert.That(categoryModel.FirstOccurence, Is.EqualTo(_aPlugin.Models["test_category"][0]));
-        Assert.That(categoryModel.Description, Is.EqualTo("Contact Category"));
-        Assert.That(categoryModel.AllOccurences, Has.Count.EqualTo(1));
-        Assert.That(categoryModel.Fields, Has.Count.EqualTo(5));
+        Assert.Equal(_pluginManager.Models.ToList()[1], categoryModel);
+        Assert.Equal("test_category", categoryModel.Name);
+        Assert.Equal(_aPlugin.Models["test_category"][0], categoryModel.FirstOccurence);
+        Assert.Equal("Contact Category", categoryModel.Description);
+        Assert.Single(categoryModel.AllOccurences);
+        Assert.Equal(5, categoryModel.Fields.Count);
         
         // TestCategory
         List<FinalField> categoryFields = categoryModel.Fields.Values.ToList();
         
-        Assert.That(categoryFields[0].FieldName, Is.EqualTo("Name"));
-        Assert.That(categoryFields[0].FieldType, Is.EqualTo(FieldType.String));
-        Assert.That(categoryFields[0].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_category"][0].Fields["Name"]));
-        Assert.That(categoryFields[0].LastOccurence, Is.EqualTo(_aPlugin.Models["test_category"][0].Fields["Name"]));
-        Assert.That(categoryFields[0].AllOccurences, Has.Count.EqualTo(1));
-        Assert.That(categoryFields[0].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_category"][0].Fields["Name"] }));
-        Assert.That(categoryFields[0].Name, Is.EqualTo("Name"));
-        Assert.That(categoryFields[0].Description, Is.EqualTo("Name of the category"));
-        Assert.That(categoryFields[0].DefaultComputedMethod, Is.Null);
-        Assert.That(categoryFields[0].TreeDependency.IsLeaf, Is.True);
-        Assert.That(categoryFields[0].TreeDependency.Items, Is.Empty);
+        Assert.Equal("Name", categoryFields[0].FieldName);
+        Assert.Equal(FieldType.String, categoryFields[0].FieldType);
+        Assert.Equal(_aPlugin.Models["test_category"][0].Fields["Name"], categoryFields[0].FirstOccurence);
+        Assert.Equal(_aPlugin.Models["test_category"][0].Fields["Name"], categoryFields[0].LastOccurence);
+        Assert.Single(categoryFields[0].AllOccurences);
+        Assert.Equivalent(new[] { _aPlugin.Models["test_category"][0].Fields["Name"] }, categoryFields[0].AllOccurences);
+        Assert.Equal("Name", categoryFields[0].Name);
+        Assert.Equal("Name of the category", categoryFields[0].Description);
+        Assert.Null(categoryFields[0].DefaultComputedMethod);
+        Assert.True(categoryFields[0].TreeDependency.IsLeaf);
+        Assert.Empty(categoryFields[0].TreeDependency.Items);
         
-        Assert.That(categoryFields[1].FieldName, Is.EqualTo("Partners"));
-        Assert.That(categoryFields[1].FieldType, Is.EqualTo(FieldType.OneToMany));
-        Assert.That(categoryFields[1].FirstOccurence, Is.EqualTo(_aPlugin.Models["test_category"][0].Fields["Partners"]));
-        Assert.That(categoryFields[1].LastOccurence, Is.EqualTo(_aPlugin.Models["test_category"][0].Fields["Partners"]));
-        Assert.That(categoryFields[1].AllOccurences, Has.Count.EqualTo(1));
-        Assert.That(categoryFields[1].AllOccurences, Is.EquivalentTo(new[] { _aPlugin.Models["test_category"][0].Fields["Partners"] }));
-        Assert.That(categoryFields[1].Name, Is.EqualTo("Partners"));
-        Assert.That(categoryFields[1].Description, Is.EqualTo("Partners linked to this category"));
-        Assert.That(categoryFields[1].DefaultComputedMethod, Is.Null);
-        Assert.That(categoryFields[1].TreeDependency.IsLeaf, Is.True);
-        Assert.That(categoryFields[1].TreeDependency.Items, Is.Empty);
-        Assert.That(categoryFields[1].TargetField, Is.EqualTo("Category"));
-        Assert.That(categoryFields[1].OriginColumnName, Is.Null);
-        Assert.That(categoryFields[1].TargetColumnName, Is.Null);
+        Assert.Equal("Partners", categoryFields[1].FieldName);
+        Assert.Equal(FieldType.OneToMany, categoryFields[1].FieldType);
+        Assert.Equal(_aPlugin.Models["test_category"][0].Fields["Partners"], categoryFields[1].FirstOccurence);
+        Assert.Equal(_aPlugin.Models["test_category"][0].Fields["Partners"], categoryFields[1].LastOccurence);
+        Assert.Single(categoryFields[1].AllOccurences);
+        Assert.Equivalent(new[] { _aPlugin.Models["test_category"][0].Fields["Partners"] }, categoryFields[1].AllOccurences);
+        Assert.Equal("Partners", categoryFields[1].Name);
+        Assert.Equal("Partners linked to this category", categoryFields[1].Description);
+        Assert.Null(categoryFields[1].DefaultComputedMethod);
+        Assert.True(categoryFields[1].TreeDependency.IsLeaf);
+        Assert.Empty(categoryFields[1].TreeDependency.Items);
+        Assert.Equal("Category", categoryFields[1].TargetField);
+        Assert.Null(categoryFields[1].OriginColumnName);
+        Assert.Null(categoryFields[1].TargetColumnName);
     }
 }
