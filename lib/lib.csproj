@@ -12,4 +12,10 @@
       <PackageReference Include="Npgsql" Version="8.0.3" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Reference Include="xunit.core">
+        <HintPath>..\..\..\..\..\.nuget\packages\xunit.extensibility.core\2.9.0\lib\netstandard1.1\xunit.core.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
 </Project>

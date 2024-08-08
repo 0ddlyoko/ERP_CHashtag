@@ -12,6 +12,7 @@ public class PluginManager(Config config)
     public readonly Config Config = config;
     public readonly DatabaseConnectionConfig DatabaseConnectionConfig = new(config.DatabaseHostname, config.DatabasePort, config.DatabaseName, config.DatabaseUser, config.DatabasePassword);
     private readonly Dictionary<string, APlugin> _availablePlugins = new();
+    private readonly Dictionary<Assembly, APlugin> _availablePluginsByAssembly = new();
     private readonly Dictionary<string, APlugin> _plugins = new();
     private readonly Dictionary<string, ICommand> _commands = new();
     private readonly Dictionary<string, List<PluginModel>> _pluginModels = new();
@@ -31,6 +32,8 @@ public class PluginManager(Config config)
     public IEnumerable<FinalModel> Models => _models.Values;
     public int ModelsSize => _models.Count;
     public int TotalModelsSize => _pluginModels.Values.SelectMany(p => p).Count();
+    
+    public bool Test = false;
 
     public void RegisterPlugins()
     {
@@ -39,7 +42,13 @@ public class PluginManager(Config config)
             throw new InvalidOperationException("Cannot register plugins if plugins are already registered");
         }
 
-        if (Config.PluginsPath == null)
+        if (Test)
+        {
+            // Test mode, register all available assemblies
+            
+        }
+
+        if (Config.PluginsPath == null && !Test)
             throw new InvalidOperationException("Invalid root directory for plugins!");
         if (!Directory.Exists(Config.PluginsPath))
             throw new InvalidOperationException($"Plugin directory not found! {Config.PluginsPath}");
@@ -83,7 +92,14 @@ public class PluginManager(Config config)
     public void RegisterPlugin(Assembly assembly)
     {
         var plugin = new APlugin(assembly);
-        _availablePlugins[plugin.Id] = plugin;
+        if (_availablePlugins.TryAdd(plugin.Id, plugin))
+            _availablePluginsByAssembly.TryAdd(assembly, plugin);
+    }
+
+    public APlugin? GetPluginFromAssembly(Assembly assembly)
+    {
+        _availablePluginsByAssembly.TryGetValue(assembly, out var plugin);
+        return plugin;
     }
 
     public IEnumerable<PluginModel> GetModelsInDependencyOrder(string modelName)

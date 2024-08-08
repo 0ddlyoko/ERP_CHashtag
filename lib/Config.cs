@@ -5,20 +5,20 @@ namespace lib;
 public class Config
 {
     // Database
-    [Option("db_host", Required = true, HelpText = "Database hostname")]
-    public string DatabaseHostname { get; set; } = "";
+    [Option("db_host", Required = false, HelpText = "Database hostname", Default = "127.0.0.1")]
+    public string DatabaseHostname { get; set; } = "localhost";
     
     [Option("db_port", Required = false, HelpText = "Database port", Default = 5432)]
-    public int DatabasePort { get; set; } = 5433;
+    public int DatabasePort { get; set; } = 5432;
 
-    [Option("db_name", Required = true, HelpText = "Database name")]
-    public string DatabaseName { get; set; } = "";
+    [Option("db_name", Required = false, HelpText = "Database name", Default = "erp")]
+    public string DatabaseName { get; set; } = "erp";
     
-    [Option("db_user", Required = true, HelpText = "Database user")]
-    public string DatabaseUser { get; set; } = "";
+    [Option("db_user", Required = false, HelpText = "Database user", Default = "postgres")]
+    public string DatabaseUser { get; set; } = "postgres";
     
-    [Option("db_password", Required = true, HelpText = "Database password")]
-    public string DatabasePassword { get; set; } = "";
+    [Option("db_password", Required = false, HelpText = "Database password", Default = "postgres")]
+    public string DatabasePassword { get; set; } = "postgres";
 
     // Install / Update
     [Option('i', "install", Required = false, HelpText = "Install listed plugins")]

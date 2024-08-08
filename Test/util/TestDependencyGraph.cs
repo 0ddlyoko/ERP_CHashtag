@@ -1,8 +1,10 @@
+using lib.test;
+
 namespace Test.util;
 
 using lib.util;
 
-public class DependencyGraphTests
+public class DependencyGraphTests: ErpTest
 {
     [Fact]
     public void GetOrderedGraph_NoDependencies_ReturnsSingleNodeFirst()
