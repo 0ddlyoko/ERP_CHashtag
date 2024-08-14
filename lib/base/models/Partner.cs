@@ -1,9 +1,7 @@
-﻿using lib;
-using lib.field.attributes;
-
-namespace main.models;
-
+﻿using lib.field.attributes;
 using lib.model;
+
+namespace lib.@base.models;
 
 [ModelDefinition("partner", Description = "Contact")]
 public class Partner: Model

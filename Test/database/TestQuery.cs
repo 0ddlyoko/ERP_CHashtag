@@ -2,29 +2,20 @@ using System.Reflection;
 using lib.database;
 using lib.model;
 using lib.plugin;
+using lib.test;
+using Xunit.Sdk;
 using Environment = lib.Environment;
 
 namespace Test.database;
 
-public class TestQuery
+public class TestQuery: ErpTest, IAsyncLifetime
 {
-    private Assembly _assembly;
-    private PluginManager _pluginManager;
-    private APlugin _aPlugin;
-    private TestPlugin _plugin;
-    private Environment _env;
     private FinalModel _finalModel;
 
-    public TestQuery()
+    public new async Task InitializeAsync()
     {
-        _assembly = typeof(TestQuery).Assembly;
-        // _pluginManager = new("");
-        _pluginManager.RegisterPlugin(_assembly);
-        _aPlugin = _pluginManager.AvailablePlugins.First();
-        _pluginManager.InstallPlugin(_aPlugin);
-        _plugin = _aPlugin.Plugin as TestPlugin;
-        _env = new Environment(_pluginManager);
-        _finalModel = _pluginManager.GetFinalModel("test_partner");
+        await base.InitializeAsync();
+        _finalModel = PluginManager.GetFinalModel("test_partner");
     }
 
     [Fact]

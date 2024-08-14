@@ -136,7 +136,7 @@ public class PluginManager(Config config)
             throw new InvalidOperationException("Plugin \"main\" not found. Please check your plugin path");
         // Install "main" plugin only if needed
         // TODO Make a request to the database to see if this module is installed
-        bool isInstalled = false;
+        bool isInstalled = plugin.IsInstalled;
 
         if (isInstalled)
         {
@@ -192,61 +192,55 @@ public class PluginManager(Config config)
             plugin.State = APlugin.PluginState.Installed;
         if (plugin.State == APlugin.PluginState.Installed)
             return;
-        
+
         // Check if all dependencies are installed
         foreach (var dependency in plugin.Dependencies)
         {
             var dependencyPlugin = GetPlugin(dependency);
             if (dependencyPlugin == null)
-                throw new InvalidOperationException($"Plugin {plugin.Name} require dependency {dependency}, but this dependency is not available");
+                throw new InvalidOperationException(
+                    $"Plugin {plugin.Name} require dependency {dependency}, but this dependency is not available");
             await InstallPluginNow(dependencyPlugin);
         }
-        
+
         Console.WriteLine($"Installing plugin {plugin.Name}");
         _plugins[plugin.Id] = plugin;
         // Yeah, we call this method in the for loop.
         // We need to do it to be able to install plugins one by one.
         // At least, if a plugin is failing to install, other plugins are installed
-        LoadPlugins();
-        Environment env = new(this);
         try
         {
-            plugin.Plugin.OnInstalling(env);
-            // Save models
-            foreach (var (modelName, models) in plugin.Models)
+            LoadPlugins();
+            Environment env = new(this);
+            try
             {
-                var finalModel = GetFinalModel(modelName);
-                await DatabaseHelper.CreateTable(env.Connection, modelName, finalModel.Description);
-                foreach (var pluginModel in models)
+                plugin.Plugin.OnInstalling(env);
+                // Save models
+                foreach (var (modelName, models) in plugin.Models)
                 {
-                    HashSet<FinalField> fields = [];
-                    foreach (var (fieldName, field) in pluginModel.Fields)
-                    {
-                        if (field.FieldName != "Id" && field.FieldType is not FieldType.OneToMany and not FieldType.ManyToMany)
-                            fields.Add(finalModel.Fields[fieldName]);
-                    }
-                    foreach (var finalField in fields)
-                    {
-                        await DatabaseHelper.CreateColumn(
-                            connection: env.Connection,
-                            tableName: modelName,
-                            columnName: finalField.FieldName,
-                            columnType: DatabaseHelper.FieldTypeToString(finalField.FieldType),
-                            required: false,
-                            targetTableName: finalField.TargetFinalModel?.Name,
-                            targetColumnName: finalField.TargetFinalField?.FieldName
-                        );
-                    }
+                    var finalModel = GetFinalModel(modelName);
+                    await finalModel.InstallModel(env, models);
                 }
+                // Now, post save models
+                foreach (var (modelName, models) in plugin.Models)
+                {
+                    var finalModel = GetFinalModel(modelName);
+                    await finalModel.PostInstallModel(env, models);
+                }
+
+                plugin.State = APlugin.PluginState.Installed;
+                Console.WriteLine($"Plugin installed using {env.Connection.NumberOfRequests} requests");
             }
-            plugin.State = APlugin.PluginState.Installed;
-            Console.WriteLine($"Plugin installed using {env.Connection.NumberOfRequests} requests");
+            catch (Exception)
+            {
+                Console.WriteLine($"Error while installing plugin! Took {env.Connection.NumberOfRequests} requests");
+                throw;
+            }
         }
         catch (Exception)
         {
             _plugins.Remove(plugin.Id);
             plugin.State = APlugin.PluginState.NotInstalled;
-            Console.WriteLine($"Error while installing plugin! Took {env.Connection.NumberOfRequests} requests");
             throw;
         }
     }

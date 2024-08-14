@@ -52,7 +52,7 @@ public class APlugin
 
     private static IEnumerable<Type> GetOfType<T>(Assembly assembly)
     {
-        return assembly.GetTypes().Where(type => typeof(T).IsAssignableFrom(type));
+        return assembly.GetTypes().Where(type => typeof(T).IsAssignableFrom(type) && type != typeof(T));
     }
 
     public enum PluginState

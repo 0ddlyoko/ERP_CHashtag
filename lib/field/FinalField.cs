@@ -1,4 +1,5 @@
 ﻿using lib.model;
+using lib.util;
 
 namespace lib.field;
 
@@ -9,6 +10,7 @@ public class FinalField
 {
     public readonly FinalModel FinalModel;
     public readonly string FieldName;
+    public string SqlTableName => StringUtil.ToSnakeCase(FieldName);
     public readonly FieldType FieldType;
     public readonly PluginField FirstOccurence;
     public PluginField? LastOccurenceOfComputedMethod;

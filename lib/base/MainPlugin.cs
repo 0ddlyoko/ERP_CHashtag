@@ -1,8 +1,7 @@
-﻿using lib.plugin;
-using main.models;
-using Environment = lib.Environment;
+﻿using lib.@base.models;
+using lib.plugin;
 
-namespace main;
+namespace lib.@base;
 
 public class MainPlugin: IPlugin
 {

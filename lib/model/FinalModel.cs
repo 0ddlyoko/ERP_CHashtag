@@ -1,4 +1,5 @@
-﻿using lib.field;
+﻿using lib.database;
+using lib.field;
 using lib.plugin;
 using lib.util;
 
@@ -11,6 +12,7 @@ public class FinalModel
 {
     public readonly PluginManager PluginManager;
     public readonly string Name;
+    public string SqlTableName => StringUtil.ToSnakeCase(Name);
     public readonly PluginModel FirstOccurence;
     public string Description;
     public readonly List<PluginModel> AllOccurences = [];
@@ -134,6 +136,69 @@ public class FinalModel
         }
         
         return dict;
+    }
+
+    /**
+     * Install given models in database.
+     * Do not make link between tables, as it's possible the target table is not already created.
+     */
+    public async Task InstallModel(Environment env, List<PluginModel> models)
+    {
+        await DatabaseHelper.CreateTable(env.Connection, Name, Description);
+        foreach (var pluginModel in models)
+        {
+            HashSet<FinalField> fields = [];
+            foreach (var (fieldName, field) in pluginModel.Fields)
+            {
+                if (field.FieldName != "Id" &&
+                    field.FieldType is not FieldType.OneToMany and not FieldType.ManyToMany)
+                    fields.Add(Fields[fieldName]);
+            }
+
+            foreach (var finalField in fields)
+            {
+                await DatabaseHelper.CreateColumn(
+                    connection: env.Connection,
+                    tableName: SqlTableName,
+                    columnName: finalField.SqlTableName,
+                    columnType: DatabaseHelper.FieldTypeToString(finalField.FieldType),
+                    required: false
+                );
+            }
+        }
+    }
+
+    /**
+     * Post install this model in database.
+     * Make link between tables, as both columns should exist.
+     */
+    public async Task PostInstallModel(Environment env, List<PluginModel> models)
+    {
+        foreach (var pluginModel in models)
+        {
+            HashSet<FinalField> fields = [];
+            foreach (var (fieldName, field) in pluginModel.Fields)
+            {
+                if (field.FieldName != "Id" &&
+                    field.FieldType is not FieldType.OneToMany and not FieldType.ManyToMany)
+                    fields.Add(Fields[fieldName]);
+            }
+
+            foreach (var finalField in fields)
+            {
+                string? targetTableName = finalField.TargetFinalModel?.SqlTableName;
+                if (targetTableName != null)
+                {
+                    await DatabaseHelper.MakeRelationBetweenColumns(
+                        connection: env.Connection,
+                        tableName: SqlTableName,
+                        columnName: finalField.SqlTableName,
+                        targetTableName: targetTableName,
+                        targetColumnName: "id"
+                    );
+                }
+            }
+        }
     }
 
     public override string ToString() => $"FinalModel[name={Name}]";

@@ -1,7 +1,7 @@
 using lib.field.attributes;
 using lib.model;
 
-namespace main.models;
+namespace lib.@base.models;
 
 [ModelDefinition("module", Description = "Represent a single module")]
 public class Module: Model
