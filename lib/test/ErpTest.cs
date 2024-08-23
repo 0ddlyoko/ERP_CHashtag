@@ -17,6 +17,7 @@ public class ErpTest: IAsyncLifetime
         Test = true,
     };
     protected readonly APlugin? Plugin;
+    protected Environment Env;
 
     private static readonly string[] BlacklistKeys =
     [
@@ -26,7 +27,7 @@ public class ErpTest: IAsyncLifetime
         // Maybe remove later, if Microsoft wants to create their own modules /s
         "Microsoft.",
     ];
-
+    
     protected ErpTest()
     {
         Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
@@ -62,6 +63,7 @@ public class ErpTest: IAsyncLifetime
         await PluginManager.LoadMain();
         if (Plugin != null)
             await PluginManager.InstallPluginNow(Plugin);
+        Env = new Environment(PluginManager);
     }
 
     public Task DisposeAsync()

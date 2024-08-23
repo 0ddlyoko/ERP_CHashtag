@@ -1,57 +1,43 @@
-﻿using System.Reflection;
-using lib;
+﻿using lib;
 using lib.cache;
 using lib.field;
 using lib.model;
-using lib.plugin;
+using lib.test;
 using Test.data.models;
-using Environment = lib.Environment;
 
 namespace Test.model;
 
-public class TestModel
+public class TestModel: ErpTest, IAsyncLifetime
 {
-    private Assembly _assembly;
-    private PluginManager _pluginManager;
-    private APlugin _aPlugin;
-    private TestPlugin _plugin;
-    private Environment _env;
-
-    public TestModel()
+    public new async Task InitializeAsync()
     {
-        _assembly = typeof(TestModel).Assembly;
-        // _pluginManager = new("");
-        _pluginManager.RegisterPlugin(_assembly);
-        _aPlugin = _pluginManager.AvailablePlugins.First();
-        _pluginManager.InstallPlugin(_aPlugin);
-        _plugin = _aPlugin.Plugin as TestPlugin;
-        _env = new Environment(_pluginManager);
+        await base.InitializeAsync();
     }
-
+    
     [Fact]
     public void TestCreateAndGetModel()
     {
-        Assert.Throws<InvalidOperationException>(() => _env.Create<TestPartner>([]));
+        Assert.Throws<InvalidOperationException>(() => Env.Create<TestPartner>([]));
         
-        TestPartner partner = _env.Create<TestPartner>([[]]);
+        TestPartner partner = Env.Create<TestPartner>([[]]);
         Assert.NotNull(partner);
         Assert.Equivalent(1, partner.Id);
         Assert.NotNull(partner.Env);
         
-        TestPartner partner2 = _env.Create<TestPartner>([[]]);
+        TestPartner partner2 = Env.Create<TestPartner>([[]]);
         Assert.NotNull(partner2);
         Assert.Equal(2, partner2.Id);
         Assert.NotNull(partner2.Env);
         
-        Assert.Equal(1, _env.Get<TestPartner>(1).Id);
-        TestPartner partner3 = _env.Get<TestPartner>(3);
+        Assert.Equal(1, Env.Get<TestPartner>(1).Id);
+        TestPartner partner3 = Env.Get<TestPartner>(3);
         Assert.NotNull(partner3);
     }
 
     [Fact]
     public void TestUpdate()
     {
-        TestPartner partner = _env.Create<TestPartner>([[]]);
+        TestPartner partner = Env.Create<TestPartner>([[]]);
         TestPartner2 partner2 = partner.Transform<TestPartner2>();
         
         partner.Update(new Dictionary<string, object?>
@@ -77,7 +63,7 @@ public class TestModel
     [Fact]
     public void TestDefaultValue()
     {
-        TestPartner partner = _env.Create<TestPartner>([[]]);
+        TestPartner partner = Env.Create<TestPartner>([[]]);
         TestPartner2 partner2 = partner.Transform<TestPartner2>();
         TestPartner3 partner3 = partner.Transform<TestPartner3>();
         
@@ -90,7 +76,7 @@ public class TestModel
         Assert.Equal(30, partner2.Test);
         Assert.Equal(30, partner3.Test);
 
-        TestPartner newPartner = _env.Create<TestPartner>([new Dictionary<string, object?>
+        TestPartner newPartner = Env.Create<TestPartner>([new Dictionary<string, object?>
         {
             {"Age", 100},
         }]);
@@ -101,16 +87,16 @@ public class TestModel
     [Fact]
     public void TestCompute()
     {
-        TestPartner partner = _env.Create<TestPartner>([[]]);
-        FinalModel finalModel = _env.PluginManager.GetFinalModel(partner.ModelName);
-        CachedModel cachedModel = _env.Cache.CachedModels[partner.ModelName][partner.Id];
+        TestPartner partner = Env.Create<TestPartner>([[]]);
+        FinalModel finalModel = Env.PluginManager.GetFinalModel(partner.ModelName);
+        CachedModel cachedModel = Env.Cache.CachedModels[partner.ModelName][partner.Id];
         TestPartner2 partner2 = partner.Transform<TestPartner2>();
         TestPartner3 partner3 = partner.Transform<TestPartner3>();
         Assert.Multiple(() =>
         {
             // DisplayName shouldn't be already computed
             Assert.Null(cachedModel.Fields["DisplayName"].Value);
-            Assert.True(_env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
+            Assert.True(Env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
             // Assert.True(cachedModel.Fields["DisplayName"].Dirty);
             // Assert.True(cachedModel.Dirty);
         });
@@ -120,7 +106,7 @@ public class TestModel
         Assert.Multiple(() =>
         {
             Assert.Equal("Name: LoL, Age: 70", cachedModel.Fields["DisplayName"].Value);
-            Assert.False(_env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
+            Assert.False(Env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
             // Assert.True(cachedModel.Fields["DisplayName"].Dirty);
             // Assert.True(cachedModel.Dirty);
         });
@@ -131,7 +117,7 @@ public class TestModel
         {
             // Modifying fields should not trigger the compute, but should set the flag to true
             Assert.Equal("Name: LoL, Age: 70", cachedModel.Fields["DisplayName"].Value);
-            Assert.True(_env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
+            Assert.True(Env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
             // Assert.True(cachedModel.Fields["DisplayName"].Dirty);
             // Assert.True(cachedModel.Dirty);
         });
@@ -140,7 +126,7 @@ public class TestModel
             // Accessing again to DisplayName should compute it as ToRecompute = true
             Assert.Equal("Name: 0ddlyoko, Age: 42", partner.DisplayName);
             Assert.Equal("Name: 0ddlyoko, Age: 42", cachedModel.Fields["DisplayName"].Value);
-            Assert.False(_env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
+            Assert.False(Env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
             // Assert.True(cachedModel.Fields["DisplayName"].Dirty);
             // Assert.True(cachedModel.Dirty);
         });
@@ -157,30 +143,30 @@ public class TestModel
     [Fact]
     public void TestRecomputeNotDoneIfFieldIsSet()
     {
-        TestPartner partner = _env.Create<TestPartner>([[]]);
-        FinalModel finalModel = _env.PluginManager.GetFinalModel(partner.ModelName);
+        TestPartner partner = Env.Create<TestPartner>([[]]);
+        FinalModel finalModel = Env.PluginManager.GetFinalModel(partner.ModelName);
 
-        Assert.True(_env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
         partner.Name = "Test";
-        Assert.True(_env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
         partner.DisplayName = "My Own display name";
-        Assert.False(_env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
     }
 
     [Fact]
     public void TestRecomputeNotDoneIfUpdateIsCalledWithComputedField()
     {
-        TestPartner partner = _env.Create<TestPartner>([[]]);
-        FinalModel finalModel = _env.PluginManager.GetFinalModel(partner.ModelName);
+        TestPartner partner = Env.Create<TestPartner>([[]]);
+        FinalModel finalModel = Env.PluginManager.GetFinalModel(partner.ModelName);
 
-        Assert.True(_env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
         partner.Update(new Dictionary<string, object?>
         {
             {"Name", "0ddlyoko"},
             {"DisplayName", "My Own Display Name"},
             {"Age", 54},
         });
-        Assert.False(_env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel.Fields["DisplayName"], partner.Id));
     }
 
     [Fact]
@@ -190,7 +176,7 @@ public class TestModel
         TestPartner partner;
         using (new DateTimeProvider.DateTimeProviderContext(fakeTime))
         {
-            partner = _env.Create<TestPartner>([[]]);
+            partner = Env.Create<TestPartner>([[]]);
             Assert.Equal(fakeTime, partner.CreationDate);
             Assert.Equal(fakeTime, partner.UpdateDate);
         }
@@ -215,7 +201,7 @@ public class TestModel
         DateTime fakeDate = fakeTime.Date;
         using (new DateTimeProvider.DateTimeProviderContext(fakeTime))
         {
-            TestPartner partner = _env.Create<TestPartner>([[]]);
+            TestPartner partner = Env.Create<TestPartner>([[]]);
             Assert.Equal(fakeDate, partner.MyDate);
 
             partner.Update(new Dictionary<string, object?>
@@ -241,14 +227,14 @@ public class TestModel
     [Fact]
     public void TestMultiplePartner()
     {
-        TestPartner partner = _env.Create<TestPartner>([[], []]);
+        TestPartner partner = Env.Create<TestPartner>([[], []]);
         Assert.Equal(2, partner.Ids.Count);
         Assert.Throws<InvalidOperationException>(() => { _ = partner.Name; });
         
         TestPartner2 partner2 = partner.Transform<TestPartner2>();
         Assert.Equal(2,  partner2.Ids.Count);
 
-        TestPartner partnerWithOnlyFirstId = _env.Get<TestPartner>(partner.Ids[0]);
+        TestPartner partnerWithOnlyFirstId = Env.Get<TestPartner>(partner.Ids[0]);
         partner.Name = "New Name";
         Assert.Equal("New Name", partnerWithOnlyFirstId.Name);
     }
@@ -256,10 +242,10 @@ public class TestModel
     [Fact]
     public void TestPartnerToCategory()
     {
-        TestPartner partner = _env.Create<TestPartner>([[]]);
-        TestCategory category = _env.Create<TestCategory>([[]]);
-        CachedModel cachedPartnerModel = _env.Cache.CachedModels[partner.ModelName][partner.Id];
-        CachedModel cachedCategoryModel = _env.Cache.CachedModels[category.ModelName][category.Id];
+        TestPartner partner = Env.Create<TestPartner>([[]]);
+        TestCategory category = Env.Create<TestCategory>([[]]);
+        CachedModel cachedPartnerModel = Env.Cache.CachedModels[partner.ModelName][partner.Id];
+        CachedModel cachedCategoryModel = Env.Cache.CachedModels[category.ModelName][category.Id];
 
         Assert.Contains("Category", cachedPartnerModel.Fields.Keys);
         Assert.Null(cachedPartnerModel.Fields["Category"].Value);
@@ -302,37 +288,37 @@ public class TestModel
     [Fact]
     public void TestMultipleRecompute()
     {
-        TestMultipleRecompute model = _env.Create<TestMultipleRecompute>([[]]);
-        FinalModel finalModel = _env.PluginManager.GetFinalModel(model.ModelName);
+        TestMultipleRecompute model = Env.Create<TestMultipleRecompute>([[]]);
+        FinalModel finalModel = Env.PluginManager.GetFinalModel(model.ModelName);
         
-        Assert.False(_env.Cache.IsToRecompute(finalModel.Fields["Name"], model.Id));
-        Assert.True(_env.Cache.IsToRecompute(finalModel.Fields["Name2"], model.Id));
-        Assert.True(_env.Cache.IsToRecompute(finalModel.Fields["Name3"], model.Id));
-        Assert.True(_env.Cache.IsToRecompute(finalModel.Fields["Name4"], model.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel.Fields["Name"], model.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel.Fields["Name2"], model.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel.Fields["Name3"], model.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel.Fields["Name4"], model.Id));
         
         Assert.Equal("0ddlyoko", model.Name);
-        Assert.False(_env.Cache.IsToRecompute(finalModel.Fields["Name"], model.Id));
-        Assert.True(_env.Cache.IsToRecompute(finalModel.Fields["Name2"], model.Id));
-        Assert.True(_env.Cache.IsToRecompute(finalModel.Fields["Name3"], model.Id));
-        Assert.True(_env.Cache.IsToRecompute(finalModel.Fields["Name4"], model.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel.Fields["Name"], model.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel.Fields["Name2"], model.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel.Fields["Name3"], model.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel.Fields["Name4"], model.Id));
         
         Assert.Equal("0ddlyoko-2-3-4", model.Name4);
-        Assert.False(_env.Cache.IsToRecompute(finalModel.Fields["Name"], model.Id));
-        Assert.False(_env.Cache.IsToRecompute(finalModel.Fields["Name2"], model.Id));
-        Assert.False(_env.Cache.IsToRecompute(finalModel.Fields["Name3"], model.Id));
-        Assert.False(_env.Cache.IsToRecompute(finalModel.Fields["Name4"], model.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel.Fields["Name"], model.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel.Fields["Name2"], model.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel.Fields["Name3"], model.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel.Fields["Name4"], model.Id));
         
         model.Name2 = "1ddlyoko";
-        Assert.False(_env.Cache.IsToRecompute(finalModel.Fields["Name"], model.Id));
-        Assert.False(_env.Cache.IsToRecompute(finalModel.Fields["Name2"], model.Id));
-        Assert.True(_env.Cache.IsToRecompute(finalModel.Fields["Name3"], model.Id));
-        Assert.True(_env.Cache.IsToRecompute(finalModel.Fields["Name4"], model.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel.Fields["Name"], model.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel.Fields["Name2"], model.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel.Fields["Name3"], model.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel.Fields["Name4"], model.Id));
         
         Assert.Equal("1ddlyoko-3-4", model.Name4);
-        Assert.False(_env.Cache.IsToRecompute(finalModel.Fields["Name"], model.Id));
-        Assert.False(_env.Cache.IsToRecompute(finalModel.Fields["Name2"], model.Id));
-        Assert.False(_env.Cache.IsToRecompute(finalModel.Fields["Name3"], model.Id));
-        Assert.False(_env.Cache.IsToRecompute(finalModel.Fields["Name4"], model.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel.Fields["Name"], model.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel.Fields["Name2"], model.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel.Fields["Name3"], model.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel.Fields["Name4"], model.Id));
         
         model.Name = "test";
         Assert.Equal("test-2-3-4", model.Name4);
@@ -342,9 +328,9 @@ public class TestModel
     public void TestX2XCompute()
     {
         // TODO FIXME
-        TestMultipleRecompute model = _env.Create<TestMultipleRecompute>([[]]);
-        TestMultipleRecompute model2 = _env.Create<TestMultipleRecompute>([[]]);
-        TestMultipleRecompute model3 = _env.Create<TestMultipleRecompute>([[]]);
+        TestMultipleRecompute model = Env.Create<TestMultipleRecompute>([[]]);
+        TestMultipleRecompute model2 = Env.Create<TestMultipleRecompute>([[]]);
+        TestMultipleRecompute model3 = Env.Create<TestMultipleRecompute>([[]]);
         
         Assert.Empty(model.Multi.Ids);
         model.Single = model2;
@@ -354,12 +340,12 @@ public class TestModel
         Assert.Equal(model, model2.Multi);
 
         model.Single = model3;
-        // Assert.False(_env.Cache.IsToRecompute(_env.PluginManager.GetFinalModel(model3.ModelName).Fields["Single2"], model.Id), "This field should have been computed");
-        Assert.True(_env.Cache.IsToRecompute(_env.PluginManager.GetFinalModel(model3.ModelName).Fields["Single3"], model.Id));
-        Assert.False(_env.Cache.IsToRecompute(_env.PluginManager.GetFinalModel(model3.ModelName).Fields["Single2"], model2.Id), "This field should have been computed");
-        Assert.True(_env.Cache.IsToRecompute(_env.PluginManager.GetFinalModel(model3.ModelName).Fields["Single3"], model2.Id));
+        // Assert.False(Env.Cache.IsToRecompute(Env.PluginManager.GetFinalModel(model3.ModelName).Fields["Single2"], model.Id), "This field should have been computed");
+        Assert.True(Env.Cache.IsToRecompute(Env.PluginManager.GetFinalModel(model3.ModelName).Fields["Single3"], model.Id));
+        Assert.False(Env.Cache.IsToRecompute(Env.PluginManager.GetFinalModel(model3.ModelName).Fields["Single2"], model2.Id), "This field should have been computed");
+        Assert.True(Env.Cache.IsToRecompute(Env.PluginManager.GetFinalModel(model3.ModelName).Fields["Single3"], model2.Id));
         // TODO Next line is failing but should work
-        // Assert.True(_env.Cache.IsToRecompute(_env.PluginManager.GetFinalModel(model3.ModelName).Fields["Multi"], model3.Id));
+        // Assert.True(Env.Cache.IsToRecompute(Env.PluginManager.GetFinalModel(model3.ModelName).Fields["Multi"], model3.Id));
         Assert.Empty(model2.Multi.Ids);
         Assert.Equal(model, model3.Multi);
 
@@ -370,8 +356,8 @@ public class TestModel
     [Fact]
     public void TestMultipleRecomputeShouldHaveCorrectAllOccurrences()
     {
-        FinalModel finalModel = _pluginManager.GetFinalModel("test_multiple_recompute");
-        FinalModel finalModel2 = _pluginManager.GetFinalModel("test_model_2");
+        FinalModel finalModel = PluginManager.GetFinalModel("test_multiple_recompute");
+        FinalModel finalModel2 = PluginManager.GetFinalModel("test_model_2");
         
         Assert.Equivalent(new Dictionary<string, TreeNode> {
             {"test_multiple_recompute.Name2", new TreeNode(finalModel.Fields["Name2"], true)},
@@ -408,45 +394,45 @@ public class TestModel
     [Fact]
     public void TestChangeFieldInModelShouldRecomputeOnAnotherModel()
     {
-        TestMultipleRecompute model = _env.Create<TestMultipleRecompute>([[]]);
-        TestModel2 model2 = _env.Create<TestModel2>([[]]);
-        FinalModel finalModel2 = _env.PluginManager.GetFinalModel(model2.ModelName);
+        TestMultipleRecompute model = Env.Create<TestMultipleRecompute>([[]]);
+        TestModel2 model2 = Env.Create<TestModel2>([[]]);
+        FinalModel finalModel2 = Env.PluginManager.GetFinalModel(model2.ModelName);
 
-        Assert.False(_env.Cache.IsToRecompute(finalModel2.Fields["AnotherModel"], model2.Id));
-        Assert.True(_env.Cache.IsToRecompute(finalModel2.Fields["Name"], model2.Id));
-        Assert.True(_env.Cache.IsToRecompute(finalModel2.Fields["IsPresent"], model2.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel2.Fields["AnotherModel"], model2.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel2.Fields["Name"], model2.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel2.Fields["IsPresent"], model2.Id));
 
         Assert.Equal("Unknown", model2.Name);
-        Assert.False(_env.Cache.IsToRecompute(finalModel2.Fields["Name"], model2.Id));
-        Assert.True(_env.Cache.IsToRecompute(finalModel2.Fields["IsPresent"], model2.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel2.Fields["Name"], model2.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel2.Fields["IsPresent"], model2.Id));
         Assert.False(model2.IsPresent);
-        Assert.False(_env.Cache.IsToRecompute(finalModel2.Fields["Name"], model2.Id));
-        Assert.False(_env.Cache.IsToRecompute(finalModel2.Fields["IsPresent"], model2.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel2.Fields["Name"], model2.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel2.Fields["IsPresent"], model2.Id));
 
 
         model2.AnotherModel = model;
-        Assert.True(_env.Cache.IsToRecompute(finalModel2.Fields["Name"], model2.Id));
-        Assert.True(_env.Cache.IsToRecompute(finalModel2.Fields["IsPresent"], model2.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel2.Fields["Name"], model2.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel2.Fields["IsPresent"], model2.Id));
 
         Assert.Equal("0ddlyoko", model2.Name);
-        Assert.False(_env.Cache.IsToRecompute(finalModel2.Fields["Name"], model2.Id));
-        Assert.True(_env.Cache.IsToRecompute(finalModel2.Fields["IsPresent"], model2.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel2.Fields["Name"], model2.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel2.Fields["IsPresent"], model2.Id));
         
         Assert.True(model2.IsPresent);
-        Assert.False(_env.Cache.IsToRecompute(finalModel2.Fields["Name"], model2.Id));
-        Assert.False(_env.Cache.IsToRecompute(finalModel2.Fields["IsPresent"], model2.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel2.Fields["Name"], model2.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel2.Fields["IsPresent"], model2.Id));
         
         // Change the name should not set ToRecompute=True on the IsPresent field
         model.Name = "1ddlyoko";
-        Assert.True(_env.Cache.IsToRecompute(finalModel2.Fields["Name"], model2.Id));
-        Assert.False(_env.Cache.IsToRecompute(finalModel2.Fields["IsPresent"], model2.Id));
+        Assert.True(Env.Cache.IsToRecompute(finalModel2.Fields["Name"], model2.Id));
+        Assert.False(Env.Cache.IsToRecompute(finalModel2.Fields["IsPresent"], model2.Id));
     }
 
     [Fact]
     public void TestDependencyTreeWithMultipleRecompute()
     {
-        FinalModel finalModel1 = _pluginManager.GetFinalModel("test_multiple_recompute");
-        FinalModel finalModel2 = _pluginManager.GetFinalModel("test_model_2");
+        FinalModel finalModel1 = PluginManager.GetFinalModel("test_multiple_recompute");
+        FinalModel finalModel2 = PluginManager.GetFinalModel("test_model_2");
         
         Assert.False(finalModel1.Fields["Name"].TreeDependency.IsLeaf);
         Assert.Equal(finalModel1.Fields["Name"], finalModel1.Fields["Name"].TreeDependency.Root);
@@ -478,7 +464,7 @@ public class TestModel
     [Fact]
     public void TestSelection()
     {
-        FinalModel finalModel = _pluginManager.GetFinalModel("test_limited_partner");
+        FinalModel finalModel = PluginManager.GetFinalModel("test_limited_partner");
         Assert.Equal(FieldType.Selection, finalModel.Fields["State"].FieldType);
         Assert.NotNull(finalModel.Fields["State"].Selection);
         Assert.Equivalent(new Dictionary<string, string>
@@ -488,7 +474,7 @@ public class TestModel
             { "free", "Free" },
         }, finalModel.Fields["State"].Selection.Selections);
 
-        TestLimitedPartner p = _env.Create<TestLimitedPartner>([[]]);
+        TestLimitedPartner p = Env.Create<TestLimitedPartner>([[]]);
         Assert.Equal("free", p.State);
         Assert.False(p.IsLimited);
         

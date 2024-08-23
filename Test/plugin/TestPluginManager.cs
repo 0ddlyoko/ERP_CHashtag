@@ -1,33 +1,33 @@
-using System.Reflection;
 using lib.field;
 using lib.model;
 using lib.plugin;
+using lib.test;
 using Test.data.models;
 
 namespace Test.plugin;
 
-public class TestPluginManager
+/**
+ * Only work if there is one installed plugin
+ */
+public class TestPluginManager: ErpTest, IAsyncLifetime
 {
     private const int TotalNumberOfModels = 5;
     private const int TotalNumberOfModelOverride = 7;
-    private Assembly _assembly;
-    private PluginManager _pluginManager;
     private APlugin _aPlugin;
-    private TestPlugin _plugin; 
-    
-    public TestPluginManager()
+    private TestPlugin _plugin;
+
+    public new async Task InitializeAsync()
     {
-        _assembly = typeof(TestPluginManager).Assembly;
-        // _pluginManager = new("");
-        _pluginManager.RegisterPlugin(_assembly);
-        _aPlugin = _pluginManager.AvailablePlugins.First();
+        await base.InitializeAsync();
+        var aPlugin = PluginManager.GetPlugin("test");
+        _aPlugin = aPlugin ?? throw new NullReferenceException("Plugin \"test\" could not be loaded");
         _plugin = _aPlugin.Plugin as TestPlugin;
     }
 
     [Fact]
     public void TestPluginLoaded()
     {
-        Assert.Equal(1, _pluginManager.AvailablePluginsSize);
+        Assert.Equal(1, PluginManager.AvailablePluginsSize);
         Assert.Equal(_plugin.Id, _aPlugin.Id);
         Assert.Equal(_plugin.Name, _aPlugin.Name);
         Assert.Equal(_plugin.Version, _aPlugin.Version);
@@ -39,15 +39,15 @@ public class TestPluginManager
         Assert.Equal(0, _plugin.NumberOfOnEnd);
         
         // Plugin is not installed
-        Assert.Equal(0, _pluginManager.PluginsSize);
-        Assert.Equal(0, _pluginManager.CommandsSize);
-        Assert.Equal(0, _pluginManager.ModelsSize);
-        Assert.Equal(0, _pluginManager.TotalModelsSize);
-        Assert.Null(_pluginManager.GetInstalledPlugin("test"));
-        Assert.False(_pluginManager.IsPluginInstalled("test"));
+        Assert.Equal(0, PluginManager.PluginsSize);
+        Assert.Equal(0, PluginManager.CommandsSize);
+        Assert.Equal(0, PluginManager.ModelsSize);
+        Assert.Equal(0, PluginManager.TotalModelsSize);
+        Assert.Null(PluginManager.GetInstalledPlugin("test"));
+        Assert.False(PluginManager.IsPluginInstalled("test"));
 
         // Install plugin
-        _pluginManager.InstallPlugin(_aPlugin);
+        PluginManager.InstallPlugin(_aPlugin);
         
         // Plugin is installed
         Assert.True(_aPlugin.IsInstalled);
@@ -55,16 +55,16 @@ public class TestPluginManager
         Assert.Equal(1, _plugin.NumberOfOnStart);
         Assert.Equal(0, _plugin.NumberOfOnEnd);
         
-        Assert.Equal(1, _pluginManager.PluginsSize);
-        Assert.Equal(0, _pluginManager.CommandsSize);
-        Assert.Equal(TotalNumberOfModels, _pluginManager.ModelsSize);
-        Assert.Equal(TotalNumberOfModelOverride, _pluginManager.TotalModelsSize);
-        Assert.Equal(_aPlugin, _pluginManager.GetInstalledPlugin("test"));
-        Assert.True(_pluginManager.IsPluginInstalled("test"));
+        Assert.Equal(1, PluginManager.PluginsSize);
+        Assert.Equal(0, PluginManager.CommandsSize);
+        Assert.Equal(TotalNumberOfModels, PluginManager.ModelsSize);
+        Assert.Equal(TotalNumberOfModelOverride, PluginManager.TotalModelsSize);
+        Assert.Equal(_aPlugin, PluginManager.GetInstalledPlugin("test"));
+        Assert.True(PluginManager.IsPluginInstalled("test"));
         
-        Assert.Equal(_aPlugin, _pluginManager.GetPlugin("test"));
+        Assert.Equal(_aPlugin, PluginManager.GetPlugin("test"));
 
-        Assert.Equivalent(new[] { _aPlugin }, _pluginManager.PluginsInDependencyOrder);
+        Assert.Equivalent(new[] { _aPlugin }, PluginManager.PluginsInDependencyOrder);
     }
 
     [Fact]
@@ -277,13 +277,13 @@ public class TestPluginManager
     public void TestModelMerges()
     {
         // Install plugin
-        _pluginManager.InstallPlugin(_aPlugin);
+        PluginManager.InstallPlugin(_aPlugin);
         
-        Assert.Equal(TotalNumberOfModels, _pluginManager.ModelsSize);
-        Assert.Equal(TotalNumberOfModelOverride, _pluginManager.TotalModelsSize);
+        Assert.Equal(TotalNumberOfModels, PluginManager.ModelsSize);
+        Assert.Equal(TotalNumberOfModelOverride, PluginManager.TotalModelsSize);
 
-        FinalModel partnerModel = _pluginManager.GetFinalModel("test_partner");
-        Assert.Equal(_pluginManager.Models.ToList()[0], partnerModel);
+        FinalModel partnerModel = PluginManager.GetFinalModel("test_partner");
+        Assert.Equal(PluginManager.Models.ToList()[0], partnerModel);
         Assert.Equal("test_partner", partnerModel.Name);
         Assert.Equal(_aPlugin.Models["test_partner"][0], partnerModel.FirstOccurence);
         Assert.Equal("Contact :D", partnerModel.Description);
@@ -404,8 +404,8 @@ public class TestPluginManager
         Assert.Empty(partnerFields[10].TreeDependency.Items);
 
         
-        FinalModel categoryModel = _pluginManager.GetFinalModel("test_category");
-        Assert.Equal(_pluginManager.Models.ToList()[1], categoryModel);
+        FinalModel categoryModel = PluginManager.GetFinalModel("test_category");
+        Assert.Equal(PluginManager.Models.ToList()[1], categoryModel);
         Assert.Equal("test_category", categoryModel.Name);
         Assert.Equal(_aPlugin.Models["test_category"][0], categoryModel.FirstOccurence);
         Assert.Equal("Contact Category", categoryModel.Description);

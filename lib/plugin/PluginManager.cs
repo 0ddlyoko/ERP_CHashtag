@@ -34,6 +34,8 @@ public class PluginManager(Config config)
     public int TotalModelsSize => _pluginModels.Values.SelectMany(p => p).Count();
     
     public bool Test = false;
+    private readonly SemaphoreSlim _mainPluginLock = new(1, 1);
+    private readonly SemaphoreSlim _pluginLock = new(1, 1);
 
     public void RegisterPlugins()
     {
@@ -131,20 +133,28 @@ public class PluginManager(Config config)
      */
     public async Task LoadMain()
     {
-        var plugin = GetPlugin("main");
-        if (plugin == null)
-            throw new InvalidOperationException("Plugin \"main\" not found. Please check your plugin path");
-        // Install "main" plugin only if needed
-        // TODO Make a request to the database to see if this module is installed
-        bool isInstalled = plugin.IsInstalled;
+        await _mainPluginLock.WaitAsync();
+        try
+        {
+            var plugin = GetPlugin("main");
+            if (plugin == null)
+                throw new InvalidOperationException("Plugin \"main\" not found. Please check your plugin path");
+            // Install "main" plugin only if needed
+            // TODO Make a request to the database to see if this module is installed
+            bool isInstalled = plugin.IsInstalled;
 
-        if (isInstalled)
-        {
-            
+            if (isInstalled)
+            {
+
+            }
+            else
+            {
+                await InstallPluginNow(plugin);
+            }
         }
-        else
+        finally
         {
-            await InstallPluginNow(plugin);
+            _mainPluginLock.Release();
         }
     }
 
@@ -186,62 +196,70 @@ public class PluginManager(Config config)
      */
     public async Task InstallPluginNow(APlugin plugin)
     {
-        if (GetPlugin(plugin.Name) != plugin)
-            throw new InvalidOperationException("This plugin is not registered, or is not the same as given one");
-        if (plugin.State is APlugin.PluginState.ToUninstall)
-            plugin.State = APlugin.PluginState.Installed;
-        if (plugin.State == APlugin.PluginState.Installed)
-            return;
-
-        // Check if all dependencies are installed
-        foreach (var dependency in plugin.Dependencies)
-        {
-            var dependencyPlugin = GetPlugin(dependency);
-            if (dependencyPlugin == null)
-                throw new InvalidOperationException(
-                    $"Plugin {plugin.Name} require dependency {dependency}, but this dependency is not available");
-            await InstallPluginNow(dependencyPlugin);
-        }
-
-        Console.WriteLine($"Installing plugin {plugin.Name}");
-        _plugins[plugin.Id] = plugin;
-        // Yeah, we call this method in the for loop.
-        // We need to do it to be able to install plugins one by one.
-        // At least, if a plugin is failing to install, other plugins are installed
+        await _pluginLock.WaitAsync();
         try
         {
-            LoadPlugins();
-            Environment env = new(this);
+            if (GetPlugin(plugin.Name) != plugin)
+                throw new InvalidOperationException("This plugin is not registered, or is not the same as given one");
+            if (plugin.State is APlugin.PluginState.ToUninstall)
+                plugin.State = APlugin.PluginState.Installed;
+            if (plugin.State == APlugin.PluginState.Installed)
+                return;
+
+            // Check if all dependencies are installed
+            foreach (var dependency in plugin.Dependencies)
+            {
+                var dependencyPlugin = GetPlugin(dependency);
+                if (dependencyPlugin == null)
+                    throw new InvalidOperationException(
+                        $"Plugin {plugin.Name} require dependency {dependency}, but this dependency is not available");
+                await InstallPluginNow(dependencyPlugin);
+            }
+
+            Console.WriteLine($"Installing plugin {plugin.Name}");
+            _plugins[plugin.Id] = plugin;
+            // Yeah, we call this method in the for loop.
+            // We need to do it to be able to install plugins one by one.
+            // At least, if a plugin is failing to install, other plugins are installed
             try
             {
-                plugin.Plugin.OnInstalling(env);
-                // Save models
-                foreach (var (modelName, models) in plugin.Models)
+                LoadPlugins();
+                Environment env = new(this);
+                try
                 {
-                    var finalModel = GetFinalModel(modelName);
-                    await finalModel.InstallModel(env, models);
-                }
-                // Now, post save models
-                foreach (var (modelName, models) in plugin.Models)
-                {
-                    var finalModel = GetFinalModel(modelName);
-                    await finalModel.PostInstallModel(env, models);
-                }
+                    plugin.Plugin.OnInstalling(env);
+                    // Save models
+                    foreach (var (modelName, models) in plugin.Models)
+                    {
+                        var finalModel = GetFinalModel(modelName);
+                        await finalModel.InstallModel(env, models);
+                    }
+                    // Now, post save models
+                    foreach (var (modelName, models) in plugin.Models)
+                    {
+                        var finalModel = GetFinalModel(modelName);
+                        await finalModel.PostInstallModel(env, models);
+                    }
 
-                plugin.State = APlugin.PluginState.Installed;
-                Console.WriteLine($"Plugin installed using {env.Connection.NumberOfRequests} requests");
+                    plugin.State = APlugin.PluginState.Installed;
+                    Console.WriteLine($"Plugin installed using {env.Connection.NumberOfRequests} requests");
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine($"Error while installing plugin! Took {env.Connection.NumberOfRequests} requests");
+                    throw;
+                }
             }
             catch (Exception)
             {
-                Console.WriteLine($"Error while installing plugin! Took {env.Connection.NumberOfRequests} requests");
+                _plugins.Remove(plugin.Id);
+                plugin.State = APlugin.PluginState.NotInstalled;
                 throw;
             }
         }
-        catch (Exception)
+        finally
         {
-            _plugins.Remove(plugin.Id);
-            plugin.State = APlugin.PluginState.NotInstalled;
-            throw;
+            _pluginLock.Release();
         }
     }
 
